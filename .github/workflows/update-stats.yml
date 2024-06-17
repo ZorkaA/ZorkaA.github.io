@@ -1,3 +1,5 @@
+
+
 name: Update Stats
 
 on:
@@ -25,8 +27,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install pandas google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-    - name: Debug - List Files
-      run: ls -l
+    - name: Debug - List Files Before
+      run: ls -al
 
     - name: Update stats from Google Drive
       env:
@@ -35,13 +37,16 @@ jobs:
       run: |
         echo "${{ secrets.GOOGLE_DRIVE_API_KEY }}" > credentials.json
         python update_stats.py
+        echo "Contents of index.html after running update_stats.py:"
         cat index.html
+
+    - name: Debug - List Files After
+      run: ls -al
 
     - name: Commit and push changes
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add .
+        git add index.html
         git commit -m "Update stats"
         git push
-  
