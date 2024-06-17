@@ -1,0 +1,50 @@
+name: Update Stats
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight
+  push:
+    branches:
+      - main
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+    - name: Debug - List Files Before
+      run: ls -al
+
+    - name: Update stats from Google Drive
+      env:
+        GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
+        GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+      run: |
+        echo "${{ secrets.GOOGLE_DRIVE_API_KEY }}" > credentials.json
+        python update_stats.py
+        echo "Contents of index.html after running update_stats.py:"
+        cat index.html
+
+    - name: Debug - List Files After
+      run: ls -al
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
+        git add index.html
+        git commit -m "Update stats"
+        git push
