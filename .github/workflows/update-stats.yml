@@ -13,10 +13,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2.5.0  # Use a specific version that supports Node.js 20
+      uses: actions/checkout@v2.5.0
+      with:
+        node-version: '20'  # Specify Node.js version
 
     - name: Set up Python
-      uses: actions/setup-python@v2  # Use the latest version available within v2
+      uses: actions/setup-python@v2
       with:
         python-version: '3.x'
 
@@ -48,4 +50,3 @@ jobs:
         git add index.html
         git commit -m "Update stats"
         git push
-
