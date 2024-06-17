@@ -30,6 +30,7 @@ jobs:
         GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
         GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
       run: |
+        echo "${{ secrets.GOOGLE_DRIVE_API_KEY }}" > credentials.json
         python update_stats.py
 
     - name: Commit and push changes
