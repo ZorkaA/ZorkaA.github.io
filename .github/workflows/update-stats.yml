@@ -7,13 +7,14 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   update-stats:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
+
     - name: Set up Node.js 20
       uses: actions/setup-node@v3
       with:
@@ -32,6 +33,10 @@ jobs:
 
     - name: Run update_stats script
       run: node .github/actions/update-stats/index.js
+      env:
+        GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
+        GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+        GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL }}
 
     - name: Commit and push changes
       run: |
