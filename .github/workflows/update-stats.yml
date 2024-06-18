@@ -13,15 +13,15 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3  # Use the latest stable version
+      uses: actions/checkout@v3
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3  # Use the latest stable version
+      uses: actions/setup-node@v3
       with:
         node-version: '20'
 
     - name: Set up Python
-      uses: actions/setup-python@v4  # Use the latest stable version
+      uses: actions/setup-python@v4
       with:
         python-version: '3.x'
 
@@ -30,21 +30,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install pandas google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-    - name: Debug - List Files Before
-      run: ls -al
-
-    - name: Update stats from Google Drive
+    - name: Run custom action to update stats
+      uses: ./.github/actions/update-stats
       env:
         GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
         GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-      run: |
-        echo "${{ secrets.GOOGLE_DRIVE_API_KEY }}" > credentials.json
-        python update_stats.py
-        echo "Contents of index.html after running update_stats.py:"
-        cat index.html
-
-    - name: Debug - List Files After
-      run: ls -al
 
     - name: Commit and push changes
       run: |
