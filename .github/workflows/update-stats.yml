@@ -12,38 +12,43 @@ jobs:
   update-stats:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js 20
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
 
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install Node.js dependencies
-      run: npm install
+      - name: Install Node.js dependencies
+        run: npm install
 
-    - name: Install Python dependencies
-      run: pip install -r requirements.txt
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
 
-    - name: Run update_stats script
-      run: node .github/actions/update-stats/index.js
-      env:
-        GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
-        GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-        GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL }}
+      - name: Run update_stats script
+        run: node .github/actions/update-stats/index.js
+        env:
+          GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL }}
 
-    - name: Commit stats.json changes
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add stats.json
-        git commit -m 'Update stats.json'
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Stage stats.json
+        run: git add stats.json
+
+      - name: Commit changes
+        run: |
+          git commit -m 'Update stats.json'
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
