@@ -27,7 +27,6 @@ jobs:
         run: |
           npm install --prefer-offline --no-audit --no-progress
           npm install -g npm@latest  # Update npm to the latest version
-        continue-on-error: true  # Continue if package.json is missing
 
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
