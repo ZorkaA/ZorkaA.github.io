@@ -24,8 +24,10 @@ jobs:
         run: node -v
 
       - name: Install npm dependencies
-        run: npm ci --prefer-offline --no-audit --no-progress --unsafe-perm || npm install --prefer-offline --no-audit --no-progress --unsafe-perm
-        continue-on-error: true  # This will prevent the job from failing if no package.json is found
+        run: |
+          npm install --prefer-offline --no-audit --no-progress
+          npm install -g npm@latest  # Update npm to the latest version
+        continue-on-error: true  # Continue if package.json is missing
 
       - name: Set up Python
         uses: actions/setup-python@v4
