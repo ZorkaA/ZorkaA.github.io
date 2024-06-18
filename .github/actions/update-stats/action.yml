@@ -1,0 +1,5 @@
+name: 'Update Stats'
+description: 'Updates stats from Google Drive'
+runs:
+  using: 'node20'
+  main: 'index.js'
