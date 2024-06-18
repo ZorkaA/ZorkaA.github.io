@@ -38,7 +38,7 @@ jobs:
         GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
         GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL }}
 
-    - name: Commit and push changes
+    - name: Commit stats.json changes
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
