@@ -23,18 +23,19 @@ jobs:
       - name: Verify Node.js version
         run: node -v
 
-      - name: Install npm dependencies
-        run: |
-          npm install --prefer-offline --no-audit --no-progress
-          npm install -g npm@latest  # Update npm to the latest version
+      - name: Clear npm cache
+        run: npm cache clean --force
 
-      - name: Run update stats script
+      - name: Install npm dependencies
+        run: npm install --prefer-offline --no-audit --no-progress
+
+      - name: Set up environment variables
         env:
           GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-        run: |
-          echo "${GOOGLE_DRIVE_API_KEY}" > credentials.json
-          npm run update-stats  # Replace with your actual npm script command
+
+      - name: Run update stats script
+        run: npm run update-stats  # Replace with your actual npm script command
 
       - name: Commit and push changes
         run: |
