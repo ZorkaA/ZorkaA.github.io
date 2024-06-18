@@ -1,10 +1,7 @@
 {
-  "name": "Pull Stats",
+  "name": "Drive Folder Stats",
   "version": "1.0.0",
   "scripts": {
-    "update-stats": "node scripts/update-stats.js"
-  },
-  "dependencies": {
-    "your-dependency": "^1.0.0"
+    "update-stats": "node .github/actions/update-stats/index.js"
   }
 }
