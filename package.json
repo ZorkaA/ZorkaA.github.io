@@ -1,7 +1,12 @@
 {
-  "name": "Drive Folder Stats",
+  "name": "google-drive-stats",
   "version": "1.0.0",
+  "description": "Fetch and display Google Drive statistics",
+  "main": "index.js",
   "scripts": {
-    "update-stats": "node .github/actions/update-stats/index.js"
+    "start": "node ./.github/actions/fetch-data/index.js"
+  },
+  "dependencies": {
+    "googleapis": "^107.0.0"
   }
 }
