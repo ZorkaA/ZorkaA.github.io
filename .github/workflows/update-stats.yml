@@ -46,9 +46,13 @@ jobs:
       - name: Stage stats.json
         run: git add stats.json
 
+      - name: Check git status
+        run: git status  # Debugging step to verify changes are staged
+
       - name: Commit changes
-        run: |
-          git commit -m 'Update stats.json'
-          git push
+        run: git commit -m 'Update stats.json'
+
+      - name: Push changes
+        run: git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
