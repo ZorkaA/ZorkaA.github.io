@@ -1,7 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Statistics</title>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+    <h1>Google Drive Statistics</h1>
+    <div id="stats">
+        <p id="first-pull">First Pull: Loading...</p>
+        <p id="last-pull">Last Pull: Loading...</p>
+        <p id="total-pulls">Total Pulls: Loading...</p>
+    </div>
+
+    <script>
+        // JavaScript to fetch and display data
+        fetch('/stats.json')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('first-pull').textContent = 'First Pull: ' + data.firstPull;
+                document.getElementById('last-pull').textContent = 'Last Pull: ' + data.lastPull;
+                document.getElementById('total-pulls').textContent = 'Total Pulls: ' + data.totalPulls;
+            })
+            .catch(error => console.error('Error fetching stats:', error));
+    </script>
 </body>
 </html>
