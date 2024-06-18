@@ -28,23 +28,13 @@ jobs:
           npm install --prefer-offline --no-audit --no-progress
           npm install -g npm@latest  # Update npm to the latest version
 
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas google-api-python-client google-auth-httplib2 google-auth-oauthlib
-
       - name: Run update stats script
         env:
           GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
         run: |
           echo "${GOOGLE_DRIVE_API_KEY}" > credentials.json
-          python update_stats.py
+          npm run update-stats  # Replace with your actual npm script command
 
       - name: Commit and push changes
         run: |
