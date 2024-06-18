@@ -1,0 +1,10 @@
+{
+  "name": "Pull Stats",
+  "version": "1.0.0",
+  "scripts": {
+    "update-stats": "node scripts/update-stats.js"
+  },
+  "dependencies": {
+    "your-dependency": "^1.0.0"
+  }
+}
