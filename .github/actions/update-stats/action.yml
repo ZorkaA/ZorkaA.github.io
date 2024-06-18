@@ -1,31 +1,15 @@
-name: Update Statistics
-
-on:
-  schedule:
-    - cron: "0 0 * * *" #Runs daily at midnight UTC
-
-jobs:
-  update-stats:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run update-stats script
-        run: npm run update-stats
-
-      - name: Commit and push changes if any
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git add .
-          git commit -m "Update statistics [skip ci]" || echo "No changes to commit"
-          git push
+name: 'Update Stats'
+description: 'Updates the statistics from Google Drive'
+inputs:
+  google-drive-api-key:
+    description: 'Google Drive API key'
+    required: true
+  google-drive-folder-id:
+    description: 'Google Drive Folder ID'
+    required: true
+  google-drive-service-account-email:
+    description: 'Google Drive Service Account Email'
+    required: true
+runs:
+  using: 'node20'
+  main: 'index.js'
