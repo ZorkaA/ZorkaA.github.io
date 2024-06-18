@@ -2,44 +2,43 @@ name: Update Stats
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs every day at midnight UTC 
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - main
   workflow_dispatch:
-  
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'  # Ensure Python 3.x is used
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Fetch data from Google Drive
-        env:
-          GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
-          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-        run: python update_stats.py
+    - name: Install Node.js dependencies
+      run: npm install
 
-      - name: Generate stats JSON
-        run: python generate_stats_json.py
+    - name: Install Python dependencies
+      run: pip install -r requirements.txt
 
-      - name: Commit stats JSON
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add stats.json
-          git commit -m "Update stats.json"
-      
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run update_stats script
+      run: node .github/actions/update-stats/index.js
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add stats.json
+        git commit -m 'Update stats.json'
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
