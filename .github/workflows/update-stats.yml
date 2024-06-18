@@ -53,3 +53,4 @@ jobs:
         git add index.html
         git commit -m "Update stats"
         git push
+ 
