@@ -2,45 +2,26 @@ name: Update Stats
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight
-  push:
-    branches:
-      - main
+    - cron: '0 0 * * *'  # Runs every day at midnight UTC
 
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up Node.js 20
+      
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '20'  # Ensure Node.js 20 is used
 
-      - name: Verify Node.js version
-        run: node -v
+      - name: Install dependencies
+        run: npm install
 
-      - name: Clear npm cache
-        run: npm cache clean --force
-
-      - name: Install npm dependencies
-        run: npm install --prefer-offline --no-audit --no-progress
-
-      - name: Set up environment variables
+      - name: Fetch data from Google Drive
         env:
           GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-
-      - name: Run update stats script
-        run: npm run update-stats  # Replace with your actual npm script command
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add index.html
-          git commit -m "Update stats"
-          git push
+        run: node .github/actions/update-stats/index.js
