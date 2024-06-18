@@ -2,11 +2,11 @@ name: Update Stats
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch:  # Allows manual triggering from GitHub Actions UI
 
 jobs:
   update-stats:
