@@ -50,7 +50,7 @@ jobs:
         run: git status  # Debugging step to verify changes are staged
 
       - name: Commit changes
-        run: git commit -m 'Update stats.json'
+        run: git commit --allow-empty -m 'Update stats.json'
 
       - name: Push changes
         run: git push
