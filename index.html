@@ -15,7 +15,7 @@
 
     <script>
         // JavaScript to fetch and display data
-        fetch(./stats.json)
+        fetch("./stats.json")
             .then(response => response.json())
             .then(data => {
                 document.getElementById('first-pull').textContent = 'First Pull: ' + data.firstPull;
