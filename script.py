@@ -117,8 +117,11 @@ with tqdm(total=total_players, desc="Processing Players", unit="player") as prog
             player_info = get_player_info(member['uid'])
 
             # Skip if player_info is None
-            if player_info is None:
+            if not player_info:
                 continue
+
+            # Ensure player_info['losses'] is a dictionary
+            losses = player_info.get('losses') if isinstance(player_info.get('losses'), dict) else {}
 
             damage_dealt = map_damage_dealt(player_info.get('damage_dealt', {}))
 
@@ -145,7 +148,7 @@ with tqdm(total=total_players, desc="Processing Players", unit="player") as prog
                 player_info.get('time_alive'),
                 player_info.get('zombie_time_alive_count'),
                 player_info.get('zombie_time_alive')
-            ] + [damage_dealt.get(name, 0) for name in damage_names.values()] + [player_info.get('losses', {}).get(key, 0) for key in ['m00', 'm10', 'm09', 'm08', 'm07']]
+            ] + [damage_dealt.get(name, 0) for name in damage_names.values()] + [losses.get(key, 0) for key in ['m00', 'm10', 'm09', 'm08', 'm07']]
 
             # Open the CSV file to append data
             with open(csv_file_path, 'a', newline='') as file:
