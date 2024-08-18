@@ -115,6 +115,11 @@ with tqdm(total=total_players, desc="Processing Players", unit="player") as prog
 
         for member in members:
             player_info = get_player_info(member['uid'])
+
+            # Skip if player_info is None
+            if player_info is None:
+                continue
+
             damage_dealt = map_damage_dealt(player_info.get('damage_dealt', {}))
 
             # Create a row with all relevant player info
