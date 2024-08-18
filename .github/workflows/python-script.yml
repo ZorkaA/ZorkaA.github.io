@@ -1,0 +1,34 @@
+name: Run Python Script Daily
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # This cron expression schedules the job to run every day at midnight UTC
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  # Specify your Python version
+
+    - name: Install Dependencies
+      run: pip install requests tqdm
+
+    - name: Run Python Script
+      run: python script.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/wbuserdata.csv
+        git commit -m "Update wbuserdata.csv"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
