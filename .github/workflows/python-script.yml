@@ -1,4 +1,4 @@
-name: Run Python Script Daily
+name: script
 
 on:
   schedule:
