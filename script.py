@@ -105,50 +105,47 @@ if not headers:
 # Get the list of squads
 squads = get_squad_list()
 
+# Calculate total number of players for the progress bar
 total_players = sum(len(get_squad_members(squad)) for squad in squads)
-player_progress = tqdm(total=total_players, desc="Total Players", unit="player")
 
-squad_progress = tqdm(squads, desc="Squads", unit="squad")
+# Create a single progress bar for all players
+with tqdm(total=total_players, desc="Processing Players", unit="player") as progress_bar:
+    for squad in squads:
+        members = get_squad_members(squad)
 
-for squad in squad_progress:
-    members = get_squad_members(squad)
-    squad_progress.set_description(f"{squad} | {len(members)} members")
+        for member in members:
+            player_info = get_player_info(member['uid'])
+            damage_dealt = map_damage_dealt(player_info.get('damage_dealt', {}))
 
-    for member in members:
-        player_info = get_player_info(member['uid'])
-        damage_dealt = map_damage_dealt(player_info.get('damage_dealt', {}))
+            # Create a row with all relevant player info
+            row = [
+                today,
+                squad,
+                player_info.get('nick'),
+                player_info.get('level'),
+                player_info.get('xp'),
+                player_info.get('joinTime'),
+                player_info.get('ping_time'),
+                player_info.get('banned'),
+                player_info.get('coins'),
+                player_info.get('killsELO'),
+                player_info.get('gamesELO'),
+                player_info.get('number_of_jumps'),
+                player_info.get('zombie_deaths'),
+                player_info.get('zombie_kills'),
+                player_info.get('zombie_wins'),
+                player_info.get('time'),
+                player_info.get('time_alive_count'),
+                player_info.get('time_alive_longest'),
+                player_info.get('time_alive'),
+                player_info.get('zombie_time_alive_count'),
+                player_info.get('zombie_time_alive')
+            ] + [damage_dealt.get(name, 0) for name in damage_names.values()] + [player_info.get('losses', {}).get(key, 0) for key in ['m00', 'm10', 'm09', 'm08', 'm07']]
 
-        # Create a row with all relevant player info
-        row = [
-            today,
-            squad,
-            player_info.get('nick'),
-            player_info.get('level'),
-            player_info.get('xp'),
-            player_info.get('joinTime'),
-            player_info.get('ping_time'),
-            player_info.get('banned'),
-            player_info.get('coins'),
-            player_info.get('killsELO'),
-            player_info.get('gamesELO'),
-            player_info.get('number_of_jumps'),
-            player_info.get('zombie_deaths'),
-            player_info.get('zombie_kills'),
-            player_info.get('zombie_wins'),
-            player_info.get('time'),
-            player_info.get('time_alive_count'),
-            player_info.get('time_alive_longest'),
-            player_info.get('time_alive'),
-            player_info.get('zombie_time_alive_count'),
-            player_info.get('zombie_time_alive')
-        ] + [damage_dealt.get(name, 0) for name in damage_names.values()] + [player_info.get('losses', {}).get(key, 0) for key in ['m00', 'm10', 'm09', 'm08', 'm07']]
+            # Open the CSV file to append data
+            with open(csv_file_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(row)
 
-        # Open the CSV file to append data
-        with open(csv_file_path, 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(row)
-
-        player_progress.update(1)
-
-player_progress.close()
-squad_progress.close()
+            # Update the progress bar
+            progress_bar.update(1)
