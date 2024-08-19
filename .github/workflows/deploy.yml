@@ -1,10 +1,9 @@
-name: Deploy
+name: deploy
 
 on:
   push:
     branches:
-      - main  # Or the branch you use for deployment
-  workflow_dispatch:
+      - main  
 
 jobs:
   deploy:
@@ -19,17 +18,13 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
+      - name: Build site
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run Python script
-        run: |
-          python script.py
+          # Add build commands if necessary
+          echo "No build step required"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./your-output-directory  # Path to the directory to deploy
+          publish_dir: ./  
