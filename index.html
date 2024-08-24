@@ -1,43 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Test</title>
-  </head>
-  <body>
-    <input id="get">
-    <button id="submit" onclick="output()">Submit</button>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Data Query</title>
+</head>
+<body>
+    <h1>User Data Query</h1>
+    <p>Enter a User ID to retrieve data:</p>
+    <form id="userForm">
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId" name="userId" required>
+        <button type="submit">Search</button>
+    </form>
+    <h2>Results:</h2>
+    <pre id="output"></pre>
 
-    <a id="display"></a>
-  </body>
-
-  <script>
-
-    const btn = document.getElementById("submit");
-    const display = document.getElementById("display");
-
-    let file = "./data/test.csv";
-
-    async function get_data(path) {
-      try {
-        const response = await fetch(path);
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        // Return the raw server data
-        return response.text();
-      }
-      catch (error) {
-        console.error(error);
-      }
-    }
-
-    async function output() {
-      const data = await get_data(file)
-      display.textContent = data;
-    }
-
-
-  </script>
-
+    <script>
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('userId').value;
+            fetch('data/wbuserdata.csv')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    const rows = data.split('\n');
+                    const headers = rows[0].split(',');
+                    const result = rows.filter(row => row.includes(userId));
+                    if (result.length > 1) {
+                        document.getElementById('output').textContent = result.join('\n');
+                    } else {
+                        document.getElementById('output').textContent = 'No data found for the given User ID.';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('output').textContent = 'Error loading data.';
+                    console.error('Error:', error);
+                });
+        });
+    </script>
+</body>
 </html>
