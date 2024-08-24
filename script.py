@@ -97,7 +97,7 @@ else:
 
 # If the CSV is new, write headers
 if not headers:
-    headers = ['Date', 'Squad', 'Name', 'Level', 'XP', 'JoinTime', 'PingTime', 'Banned', 'Coins', 'KillsELO', 'GamesELO', 'Number_of_Jumps', 'Zombie_Deaths', 'Zombie_Kills', 'Zombie_Wins', 'Time', 'Time_Alive_Count', 'Time_Alive_Longest', 'Time_Alive', 'Zombie_Time_Alive_Count', 'Zombie_Time_Alive'] + list(damage_names.values()) + [f"Losses_{key}" for key in ['m00', 'm10', 'm09', 'm08', 'm07']]
+    headers = ['Date', 'Squad', 'Name', 'UserID', 'Level', 'XP', 'JoinTime', 'PingTime', 'Banned', 'Coins', 'KillsELO', 'GamesELO', 'Number_of_Jumps', 'Zombie_Deaths', 'Zombie_Kills', 'Zombie_Wins', 'Time', 'Time_Alive_Count', 'Time_Alive_Longest', 'Time_Alive', 'Zombie_Time_Alive_Count', 'Zombie_Time_Alive'] + list(damage_names.values()) + [f"Losses_{key}" for key in ['m00', 'm10', 'm09', 'm08', 'm07']]
     with open(csv_file_path, 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
@@ -130,6 +130,7 @@ with tqdm(total=total_players, desc="Processing Players", unit="player") as prog
                 today,
                 squad,
                 player_info.get('nick'),
+                member['uid'],  # Add UserID to the row
                 player_info.get('level'),
                 player_info.get('xp'),
                 player_info.get('joinTime'),
