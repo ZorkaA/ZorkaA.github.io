@@ -9,8 +9,8 @@
     <h1>User Data Query</h1>
     <p>Enter a User ID to retrieve data:</p>
     <form id="userForm">
-        <label for="userId">User ID:</label>
-        <input type="text" id="userId" name="userId" required>
+        <label for="UserID">User ID:</label>
+        <input type="text" id="UserID" name="UserID" required>
         <button type="submit">Search</button>
     </form>
     <h2>Results:</h2>
@@ -19,7 +19,7 @@
     <script>
         document.getElementById('userForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const userId = document.getElementById('userId').value;
+            const UserID = document.getElementById('UserID').value;
             fetch('data/wbuserdata.csv')
                 .then(response => {
                     if (!response.ok) {
@@ -30,7 +30,7 @@
                 .then(data => {
                     const rows = data.split('\n');
                     const headers = rows[0].split(',');
-                    const result = rows.filter(row => row.includes(userId));
+                    const result = rows.filter(row => row.includes(UserID));
                     if (result.length > 1) {
                         document.getElementById('output').textContent = result.join('\n');
                     } else {
