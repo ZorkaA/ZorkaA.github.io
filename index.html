@@ -35,7 +35,19 @@
     <input type="text" id="user-id-input" placeholder="Enter User ID">
     <button onclick="queryData()">Search</button>
 
-    <div id="data-output"></div>
+    <div id="data-output">
+        <!-- Table with headers, initially hidden -->
+        <table id="result-table" style="display: none;">
+            <thead>
+                <tr id="table-headers">
+                    <!-- Headers will be populated here -->
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Data will be populated here -->
+            </tbody>
+        </table>
+    </div>
 
     <script>
         async function queryData() {
@@ -51,31 +63,37 @@
             const rows = csvText.split('\n').slice(1); // Skip header row
             const headers = csvText.split('\n')[0].split(',');
 
-            const outputRows = rows.filter(row => row.split(',')[2] === userId);
+            // Populate headers once
+            let headerHtml = '';
+            headers.forEach(header => {
+                headerHtml += `<th>${header}</th>`;
+            });
+            document.getElementById('table-headers').innerHTML = headerHtml;
+
+            // Filter rows for the given user ID
+            const outputRows = rows.filter(row => row.includes(userId));
 
             if (outputRows.length === 0) {
-                document.getElementById('data-output').innerHTML = '<p>No data found for User ID: ' + userId + '</p>';
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="' + headers.length + '">No data found for User ID: ' + userId + '</td></tr>';
+                document.getElementById('result-table').style.display = 'table';
                 return;
             }
 
-            let outputHtml = '<table><tr>';
-            headers.forEach(header => {
-                outputHtml += `<th>${header}</th>`;
-            });
-            outputHtml += '</tr>';
-
+            // Populate table rows
+            let bodyHtml = '';
             outputRows.forEach(row => {
                 const columns = row.split(',');
-                outputHtml += '<tr>';
+                bodyHtml += '<tr>';
                 columns.forEach(column => {
-                    outputHtml += `<td>${column}</td>`;
+                    bodyHtml += `<td>${column}</td>`;
                 });
-                outputHtml += '</tr>';
+                bodyHtml += '</tr>';
             });
 
-            outputHtml += '</table>';
-            document.getElementById('data-output').innerHTML = outputHtml;
+            document.getElementById('table-body').innerHTML = bodyHtml;
+            document.getElementById('result-table').style.display = 'table';
         }
     </script>
 </body>
 </html>
+
