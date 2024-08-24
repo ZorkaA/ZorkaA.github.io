@@ -31,13 +31,13 @@
     </style>
 </head>
 <body>
-    <h1>Data Query</h1>
+    <h1>User Data Query</h1>
     <input type="text" id="user-id-input" placeholder="Enter User ID">
     <button onclick="queryData()">Search</button>
 
     <div id="data-output">
-        <!-- Table with headers, initially hidden -->
-        <table id="result-table" style="display: none;">
+        <!-- Table with headers -->
+        <table id="result-table">
             <thead>
                 <tr id="table-headers">
                     <!-- Headers will be populated here -->
@@ -60,40 +60,40 @@
             const response = await fetch('data/wbuserdata.csv');
             const csvText = await response.text();
 
-            const rows = csvText.split('\n').slice(1); // Skip header row
+            const rows = csvText.split('\n').slice(1); // Skip the header row
             const headers = csvText.split('\n')[0].split(',');
 
-            // Populate headers once
-            let headerHtml = '';
-            headers.forEach(header => {
-                headerHtml += `<th>${header}</th>`;
-            });
-            document.getElementById('table-headers').innerHTML = headerHtml;
+            // Populate the table headers if they are empty
+            if (document.getElementById('table-headers').innerHTML === '') {
+                let headerHtml = '';
+                headers.forEach(header => {
+                    headerHtml += `<th>${header}</th>`;
+                });
+                document.getElementById('table-headers').innerHTML = headerHtml;
+            }
 
             // Filter rows for the given user ID
             const outputRows = rows.filter(row => row.includes(userId));
 
+            // Clear any previous data
+            document.getElementById('table-body').innerHTML = '';
+
             if (outputRows.length === 0) {
                 document.getElementById('table-body').innerHTML = '<tr><td colspan="' + headers.length + '">No data found for User ID: ' + userId + '</td></tr>';
-                document.getElementById('result-table').style.display = 'table';
-                return;
-            }
-
-            // Populate table rows
-            let bodyHtml = '';
-            outputRows.forEach(row => {
-                const columns = row.split(',');
-                bodyHtml += '<tr>';
-                columns.forEach(column => {
-                    bodyHtml += `<td>${column}</td>`;
+            } else {
+                // Populate the table body with filtered data
+                let bodyHtml = '';
+                outputRows.forEach(row => {
+                    const columns = row.split(',');
+                    bodyHtml += '<tr>';
+                    columns.forEach(column => {
+                        bodyHtml += `<td>${column}</td>`;
+                    });
+                    bodyHtml += '</tr>';
                 });
-                bodyHtml += '</tr>';
-            });
-
-            document.getElementById('table-body').innerHTML = bodyHtml;
-            document.getElementById('result-table').style.display = 'table';
+                document.getElementById('table-body').innerHTML = bodyHtml;
+            }
         }
     </script>
 </body>
 </html>
-
