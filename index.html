@@ -4,44 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Data Query</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        #data-output {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
 </head>
 <body>
     <h1>User Data Query</h1>
-    <p>Enter a User ID to retrieve data:</p>
-    <form id="userForm">
-        <label for="UserID">User ID:</label>
-        <input type="text" id="UserID" name="UserID" required>
-        <button type="submit">Search</button>
-    </form>
-    <h2>Results:</h2>
-    <pre id="output"></pre>
+    <p>Enter a User ID below to retrieve all associated data.</p>
+    <input type="text" id="user-id-input" placeholder="Enter User ID">
+    <button onclick="queryData()">Search</button>
+
+    <div id="data-output"></div>
 
     <script>
-        document.getElementById('userForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const UserID = document.getElementById('UserID').value;
-            fetch('data/wbuserdata.csv')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    const rows = data.split('\n');
-                    const headers = rows[0].split(',');
-                    const result = rows.filter(row => row.includes(UserID));
-                    if (result.length > 1) {
-                        document.getElementById('output').textContent = result.join('\n');
-                    } else {
-                        document.getElementById('output').textContent = 'No data found for the given User ID.';
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('output').textContent = 'Error loading data.';
-                    console.error('Error:', error);
+        async function queryData() {
+            const userId = document.getElementById('user-id-input').value;
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+
+            const response = await fetch('data/wbuserdata.csv');
+            const csvText = await response.text();
+
+            const rows = csvText.split('\n').slice(1); // Skip header row
+            const headers = csvText.split('\n')[0].split(',');
+
+            const outputRows = rows.filter(row => row.includes(userId));
+
+            if (outputRows.length === 0) {
+                document.getElementById('data-output').innerHTML = '<p>No data found for User ID: ' + userId + '</p>';
+                return;
+            }
+
+            let outputHtml = '<table><tr>';
+            headers.forEach(header => {
+                outputHtml += `<th>${header}</th>`;
+            });
+            outputHtml += '</tr>';
+
+            outputRows.forEach(row => {
+                const columns = row.split(',');
+                outputHtml += '<tr>';
+                columns.forEach(column => {
+                    outputHtml += `<td>${column}</td>`;
                 });
-        });
+                outputHtml += '</tr>';
+            });
+
+            outputHtml += '</table>';
+            document.getElementById('data-output').innerHTML = outputHtml;
+        }
     </script>
 </body>
 </html>
