@@ -7,11 +7,19 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
         }
         h1 {
             text-align: center;
+        }
+        #data-output {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         table {
             width: 100%;
@@ -48,9 +56,10 @@
             const response = await fetch('data/wbuserdata.csv');
             const csvText = await response.text();
 
-            const rows = csvText.split('\n');
-            const headers = rows[0].split(',');  // Extract headers
-            const outputRows = rows.slice(1).filter(row => row.includes(userId));  // Filter rows for the User ID
+            const rows = csvText.split('\n').slice(1); // Get all rows after the header
+            const headers = csvText.split('\n')[0].split(','); // Get the header row
+
+            const outputRows = rows.filter(row => row.includes(userId));
 
             if (outputRows.length === 0) {
                 document.getElementById('data-output').innerHTML = '<p>No data found for User ID: ' + userId + '</p>';
