@@ -16,7 +16,6 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
         table, th, td {
             border: 1px solid #ddd;
@@ -32,22 +31,11 @@
 </head>
 <body>
     <h1>User Data Query</h1>
+    <p>Enter a User ID below to retrieve all associated data.</p>
     <input type="text" id="user-id-input" placeholder="Enter User ID">
     <button onclick="queryData()">Search</button>
 
-    <div id="data-output">
-        <!-- Table with headers -->
-        <table id="result-table">
-            <thead>
-                <tr id="table-headers">
-                    <!-- Headers will be populated here -->
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                <!-- Data will be populated here -->
-            </tbody>
-        </table>
-    </div>
+    <div id="data-output"></div>
 
     <script>
         async function queryData() {
@@ -60,39 +48,32 @@
             const response = await fetch('data/wbuserdata.csv');
             const csvText = await response.text();
 
-            const rows = csvText.split('\n').slice(1); // Skip the header row
-            const headers = csvText.split('\n')[0].split(',');
-
-            // Populate the table headers if they are empty
-            if (document.getElementById('table-headers').innerHTML === '') {
-                let headerHtml = '';
-                headers.forEach(header => {
-                    headerHtml += `<th>${header}</th>`;
-                });
-                document.getElementById('table-headers').innerHTML = headerHtml;
-            }
-
-            // Filter rows for the given user ID
-            const outputRows = rows.filter(row => row.includes(userId));
-
-            // Clear any previous data
-            document.getElementById('table-body').innerHTML = '';
+            const rows = csvText.split('\n');
+            const headers = rows[0].split(',');  // Extract headers
+            const outputRows = rows.slice(1).filter(row => row.includes(userId));  // Filter rows for the User ID
 
             if (outputRows.length === 0) {
-                document.getElementById('table-body').innerHTML = '<tr><td colspan="' + headers.length + '">No data found for User ID: ' + userId + '</td></tr>';
-            } else {
-                // Populate the table body with filtered data
-                let bodyHtml = '';
-                outputRows.forEach(row => {
-                    const columns = row.split(',');
-                    bodyHtml += '<tr>';
-                    columns.forEach(column => {
-                        bodyHtml += `<td>${column}</td>`;
-                    });
-                    bodyHtml += '</tr>';
-                });
-                document.getElementById('table-body').innerHTML = bodyHtml;
+                document.getElementById('data-output').innerHTML = '<p>No data found for User ID: ' + userId + '</p>';
+                return;
             }
+
+            let outputHtml = '<table><tr>';
+            headers.forEach(header => {
+                outputHtml += `<th>${header}</th>`;
+            });
+            outputHtml += '</tr>';
+
+            outputRows.forEach(row => {
+                const columns = row.split(',');
+                outputHtml += '<tr>';
+                columns.forEach(column => {
+                    outputHtml += `<td>${column}</td>`;
+                });
+                outputHtml += '</tr>';
+            });
+
+            outputHtml += '</table>';
+            document.getElementById('data-output').innerHTML = outputHtml;
         }
     </script>
 </body>
