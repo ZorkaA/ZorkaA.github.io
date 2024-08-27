@@ -7,20 +7,13 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
             margin: 0;
             padding: 20px;
         }
         h1 {
             text-align: center;
         }
-        #data-output {
-            margin-top: 20px;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -39,8 +32,7 @@
 </head>
 <body>
     <h1>User Data Query</h1>
-    <p>Enter a User ID below to retrieve all associated data.</p>
-    <input type="text" id="user-id-input" placeholder="Enter User ID">
+    <input type="text" id="user-id-input" placeholder="User ID">
     <button onclick="queryData()">Search</button>
 
     <div id="data-output"></div>
