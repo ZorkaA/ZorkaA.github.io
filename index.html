@@ -56,30 +56,30 @@
             const response = await fetch('data/wbuserdata.csv');
             const csvText = await response.text();
 
-            const rows = csvText.split('\n').slice(1); // Get all rows after the header
-            const headers = csvText.split('\n')[0].split(','); // Get the header row
+            const rows = csvText.split('\n').slice(1); // Skip header row
+            const headers = csvText.split('\n')[0].split(',');
 
-            const outputRows = rows.filter(row => row.includes(userId));
+            let outputRows = rows.filter(row => row.includes(userId));
 
-            if (outputRows.length === 0) {
-                document.getElementById('data-output').innerHTML = '<p>No data found for User ID: ' + userId + '</p>';
-                return;
-            }
-
+            // Add headers as the first row in the table
             let outputHtml = '<table><tr>';
             headers.forEach(header => {
                 outputHtml += `<th>${header}</th>`;
             });
             outputHtml += '</tr>';
 
-            outputRows.forEach(row => {
-                const columns = row.split(',');
-                outputHtml += '<tr>';
-                columns.forEach(column => {
-                    outputHtml += `<td>${column}</td>`;
+            if (outputRows.length === 0) {
+                outputHtml += '<tr><td colspan="' + headers.length + '">No data found for User ID: ' + userId + '</td></tr>';
+            } else {
+                outputRows.forEach(row => {
+                    const columns = row.split(',');
+                    outputHtml += '<tr>';
+                    columns.forEach(column => {
+                        outputHtml += `<td>${column}</td>`;
+                    });
+                    outputHtml += '</tr>';
                 });
-                outputHtml += '</tr>';
-            });
+            }
 
             outputHtml += '</table>';
             document.getElementById('data-output').innerHTML = outputHtml;
