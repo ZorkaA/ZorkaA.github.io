@@ -57,11 +57,23 @@
             const csvText = await response.text();
 
             const rows = csvText.split('\n').slice(1); // Skip header row
-            const headers = csvText.split('\n')[0].split(',');
+            const headers = [
+                'Date', 'Squad', 'Name', 'UserID', 'Level', 'XP', 'JoinTime', 'PingTime', 'Banned', 'Coins', 
+                'KillsELO', 'GamesELO', 'Number_of_Jumps', 'Zombie_Deaths', 'Zombie_Kills', 'Zombie_Wins', 
+                'Time', 'Time_Alive_Count', 'Time_Alive_Longest', 'Time_Alive', 'Zombie_Time_Alive_Count', 
+                'Zombie_Time_Alive', 'BGM', 'DamageDealt_p52', 'DamageDealt_p53', 'DamageDealt_p54', 
+                'DamageDealt_p55', 'DamageDealt_p56', 'DamageDealt_p57', 'DamageDealt_p58', 'DamageDealt_p59', 
+                'DamageDealt_p60', 'AR', 'AK', 'Pistol', 'HR', 'RPG', 'Shotgun', 'SR', 'SMG', 'Homing', 
+                'Grenade', 'HeliMinigun', 'TankMinigun', 'Knife', 'Revolver', 'Minigun', 'GL', 'DamageDealt_p82', 
+                'DamageDealt_p83', 'DamageDealt_p84', 'DamageDealt_p85', 'DamageDealt_p86', 'DamageDealt_p87', 
+                'Fists', 'VSS', 'Fifty', 'MGTurret', 'XBow', 'SCAR', 'TacShotty', 'VEK', 'DamageDealt_p96', 
+                'DamageDealt_p97', 'LMG', 'DamageDealt_p101', 'DamageDealt_p104', 'DamageDealt_p105', 
+                'DamageDealt_p110', 'LaserMine', 'DamageDealt_p112', 'Losses_m00', 'Losses_m10', 
+                'Losses_m09', 'Losses_m08', 'Losses_m07'
+            ];
 
-            let outputRows = rows.filter(row => row.includes(userId));
+            const outputRows = rows.filter(row => row.includes(userId));
 
-            // Add headers as the first row in the table
             let outputHtml = '<table><tr>';
             headers.forEach(header => {
                 outputHtml += `<th>${header}</th>`;
@@ -69,7 +81,7 @@
             outputHtml += '</tr>';
 
             if (outputRows.length === 0) {
-                outputHtml += '<tr><td colspan="' + headers.length + '">No data found for User ID: ' + userId + '</td></tr>';
+                outputHtml += `<tr><td colspan="${headers.length}">No data found for User ID: ${userId}</td></tr>`;
             } else {
                 outputRows.forEach(row => {
                     const columns = row.split(',');
