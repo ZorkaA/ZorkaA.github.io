@@ -46,7 +46,7 @@
                 return;
             }
 
-            const response = await fetch('data/wbuserdata.csv');
+            const response = await fetch('../../data/wbuserdata.csv');
             const csvText = await response.text();
 
             const rows = csvText.split('\n').slice(1); // Skip header row
