@@ -3,42 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presets Query</title>
+    <title>Presets</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
             padding: 20px;
         }
         h1 {
             text-align: center;
         }
-        table {
+        label, select, input {
+            margin: 5px;
+        }
+        .icon-table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 20px;
         }
-        th, td {
+        .icon-table td {
+            padding: 10px;
             border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f4f4f4;
+            text-align: center;
         }
         img {
-            max-width: 50px;
-            margin-right: 5px;
+            width: 40px;
+            height: 40px;
         }
     </style>
 </head>
 <body>
-    <h1>Presets Query</h1>
-
-    <label for="token-input">Token:</label>
-    <input type="text" id="token-input" placeholder="Enter token">
+    <h1>Preset Viewer</h1>
+    <label for="token">Enter Token:</label>
+    <input type="text" id="token" placeholder="Enter token">
     
-    <label for="entity-type">Entity Type:</label>
-    <select id="entity-type">
+    <label for="entity">Select Entity:</label>
+    <select id="entity">
         <option value="v00">v00</option>
         <option value="v01">v01</option>
         <option value="v02">v02</option>
@@ -51,64 +50,54 @@
         <option value="v22">v22</option>
     </select>
     
-    <button onclick="fetchPreset()">Search</button>
+    <button onclick="getPresetData()">Fetch Preset</button>
 
-    <br><br>
-    
     <div id="preset-output"></div>
 
     <script>
-        async function fetchPreset() {
-            const token = document.getElementById('token-input').value;
-            const entity = document.getElementById('entity-type').value;
+        async function getPresetData() {
+            const token = document.getElementById('token').value;
+            const entity = document.getElementById('entity').value;
 
             if (!token) {
                 alert('Please enter a token.');
                 return;
             }
 
-            const presetUrl = `https://store1.warbrokers.io/296//get_preset_v2.php?token=${token}&vehicle=${entity}`;
-            
+            const url = `https://store1.warbrokers.io/296//get_preset_v2.php?token=${token}&vehicle=${entity}`;
+
             try {
-                const response = await fetch(presetUrl);
-                const presetData = await response.text();
+                const response = await fetch(url);
+                const text = await response.text();
+                const lines = text.split('\n').filter(line => line.trim() !== '');
 
-                const rows = presetData.split('\n');
-                let outputHtml = '<table>';
-                
-                rows.forEach(row => {
-                    const items = row.split(',');
-                    outputHtml += '<tr><td>';
-
-                    items.forEach(item => {
-                        const folder = item.slice(0, 3); // Get v00, v01, etc.
-                        const imageUrl = `../../data/${folder}/${item}.png`;
-
-                        // Check if the image exists by trying to load it
-                        const img = new Image();
-                        img.src = imageUrl;
-                        img.onerror = () => {
-                            // If image doesn't exist, display the filename
-                            img.src = ''; // Prevent broken image icon
-                            outputHtml += `${item}.png `;
-                        };
-                        img.onload = () => {
-                            // If image exists, append it to the output
-                            outputHtml += `<img src="${imageUrl}" alt="${item}"> `;
-                        };
-
-                        document.getElementById('preset-output').innerHTML = outputHtml;
-                    });
-                    outputHtml += '</td></tr>';
-                });
-
-                outputHtml += '</table>';
-                document.getElementById('preset-output').innerHTML = outputHtml;
-
+                displayPresetData(lines);
             } catch (error) {
-                console.error('Error fetching preset data:', error);
-                alert('Failed to fetch preset data. Please try again.');
+                alert('Error fetching preset data: ' + error);
             }
+        }
+
+        function displayPresetData(lines) {
+            const outputDiv = document.getElementById('preset-output');
+            outputDiv.innerHTML = ''; // Clear previous data
+
+            let tableHtml = '<table class="icon-table">';
+            
+            lines.forEach(line => {
+                const items = line.split(',');
+                tableHtml += '<tr>';
+                
+                items.forEach(item => {
+                    const iconPath = `../../data/${item.substring(0, 3)}/${item}.png`;
+                    tableHtml += `<td><img src="${iconPath}" onerror="this.onerror=null;this.src='';this.alt='${item}.png';">`;
+                    tableHtml += `<div>${item}</div></td>`;
+                });
+                
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</table>';
+            outputDiv.innerHTML = tableHtml;
         }
     </script>
 </body>
