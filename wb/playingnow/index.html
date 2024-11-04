@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing Now</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .container {
+            width: 45%;
+        }
+        #output {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f4f4f4;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Player Count Stream</h1>
+        <button id="start-stop-btn" onclick="toggleStream()">Start Stream</button>
+        <label for="interval">Interval (seconds):</label>
+        <input type="number" id="interval" value="5" min="1" max="10" style="width: 50px;">
+        <div id="output"></div>
+    </div>
+
+    <div class="container">
+        <h1>Player Count Visualization</h1>
+        <canvas id="playerChart"></canvas>
+        <label for="max-points">Max Points:</label>
+        <input type="number" id="max-points" value="20" min="5" max="100" style="width: 50px;">
+        <button onclick="downloadChart()">Download Chart as PNG</button>
+    </div>
+
+    <script>
+        let streamActive = false;
+        let intervalId = null;
+        const outputDiv = document.getElementById('output');
+        const playerChartCanvas = document.getElementById('playerChart');
+        const maxPointsInput = document.getElementById('max-points');
+        const intervalInput = document.getElementById('interval');
+        let playerData = [];
+
+        // Initialize Chart.js line chart
+        const playerChart = new Chart(playerChartCanvas, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Player Count',
+                    data: [],
+                    borderColor: 'blue',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Players Online'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Toggle the data stream
+        function toggleStream() {
+            if (streamActive) {
+                clearInterval(intervalId);
+                streamActive = false;
+                document.getElementById('start-stop-btn').textContent = 'Start Stream';
+            } else {
+                startStream();
+                streamActive = true;
+                document.getElementById('start-stop-btn').textContent = 'Stop Stream';
+            }
+        }
+
+        // Start the data stream with a specified interval
+        function startStream() {
+            const interval = Math.max(1, parseInt(intervalInput.value, 10)) * 1000;
+            intervalId = setInterval(fetchPlayerCount, interval);
+        }
+
+        // Fetch player count from API
+        async function fetchPlayerCount() {
+            try {
+                const response = await fetch('https://wbapi.wbpjs.com/status/playersOnline');
+                const text = await response.text();
+                const playerCount = parseInt(text.match(/\d+/)[0]);
+
+                // Update output and chart data
+                updateOutput(playerCount);
+                updateChart(playerCount);
+            } catch (error) {
+                console.error('Error fetching player count:', error);
+            }
+        }
+
+        // Update scrollable output with new data
+        function updateOutput(playerCount) {
+            const timestamp = new Date().toLocaleTimeString();
+            const newEntry = `${timestamp} - Players Online: ${playerCount}`;
+            outputDiv.innerHTML = `<div>${newEntry}</div>` + outputDiv.innerHTML;
+
+            // Limit output display to 20 entries for performance
+            const entries = outputDiv.querySelectorAll('div');
+            if (entries.length > 20) {
+                outputDiv.removeChild(entries[entries.length - 1]);
+            }
+        }
+
+        // Update the chart with the latest player count
+        function updateChart(playerCount) {
+            const maxPoints = parseInt(maxPointsInput.value, 10) || 20;
+            playerData.push(playerCount);
+
+            if (playerData.length > maxPoints) {
+                playerData.shift(); // Keep data length within maxPoints limit
+            }
+
+            // Update chart data
+            playerChart.data.labels = playerData.map((_, i) => i + 1);
+            playerChart.data.datasets[0].data = playerData;
+            playerChart.update();
+        }
+
+        // Download chart as PNG
+        function downloadChart() {
+            const link = document.createElement('a');
+            link.href = playerChartCanvas.toDataURL('image/png');
+            link.download = 'player_count_chart.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>
