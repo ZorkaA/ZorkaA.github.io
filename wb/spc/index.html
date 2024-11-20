@@ -5,136 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Squad Player Count</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
-            max-width: 800px;
+        }
+        .container {
+            max-width: 1200px;
             margin: auto;
         }
-        h1 {
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
         canvas {
-            margin-top: 20px;
-            max-width: 100%;
+            width: 100% !important;
+            height: auto !important;
         }
     </style>
 </head>
 <body>
-    <h1>Squad Player Count</h1>
-    <div class="form-group">
-        <label for="squadInput">Enter Squad Name:</label>
-        <input type="text" id="squadInput" placeholder="e.g., AlphaSquad">
-        <button onclick="loadAndPlot()">Get Squad Data</button>
+    <div class="container">
+        <h1>Squad Player Count</h1>
+        <label for="squad-name">Enter Squad Name:</label>
+        <input type="text" id="squad-name" placeholder="Squad name...">
+        <button onclick="fetchData()">Submit</button>
+        <p id="error-message" style="color: red; display: none;">Squad not found or data unavailable.</p>
+
+        <canvas id="playerChart"></canvas>
     </div>
-    <canvas id="squadChart"></canvas>
 
     <script>
-        // Function to load CSV and plot data
-        function loadAndPlot() {
-            const squadName = document.getElementById('squadInput').value.trim();
-            if (!squadName) {
-                alert('Please enter a squad name.');
-                return;
-            }
+        const chartCanvas = document.getElementById('playerChart').getContext('2d');
+        let playerChart;
 
-            // Path to CSV file
-            const csvPath = '/data/playerdb.csv';
+        function fetchData() {
+            const squadName = document.getElementById('squad-name').value.trim();
+            if (!squadName) return;
 
-            // Parse the CSV file
-            Papa.parse(csvPath, {
-                download: true,
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    const data = results.data;
+            fetch('/data/playerdb.csv')
+                .then(response => response.text())
+                .then(csvData => {
+                    const rows = csvData.split('\n');
+                    const headers = rows[0].split(',').map(header => header.trim());
+                    const squadIndex = headers.indexOf('Squad');
 
-                    // Find the row corresponding to the entered squad
-                    const squadRow = data.find(row => row.Squad === squadName);
+                    const squadRow = rows.find(row => row.startsWith(squadName + ','));
                     if (!squadRow) {
-                        alert(`Squad "${squadName}" not found in the data.`);
+                        document.getElementById('error-message').style.display = 'block';
                         return;
                     }
 
-                    // Extract dates (column names excluding "Squad") and player counts
-                    const dates = Object.keys(squadRow).filter(key => key !== 'Squad');
-                    const counts = dates.map(date => {
-                        const value = squadRow[date];
-                        return value === '' ? null : parseInt(value, 10);
-                    });
+                    document.getElementById('error-message').style.display = 'none';
 
-                    // Create the chart
-                    plotChart(squadName, dates, counts);
-                },
-                error: function(error) {
-                    console.error('Error loading CSV:', error);
-                    alert('Failed to load squad data. Please try again later.');
-                }
-            });
+                    const squadData = squadRow.split(',').map(value => value.trim());
+                    const dates = headers.slice(1); // Skip "Squad"
+                    const playerCounts = squadData.slice(1).map(value => (value ? parseInt(value) : null));
+
+                    updateChart(dates, playerCounts, squadName);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
         }
 
-        // Function to plot the chart
-        function plotChart(squadName, dates, counts) {
-            const ctx = document.getElementById('squadChart').getContext('2d');
-
-            // Destroy the previous chart instance if it exists
-            if (window.squadChartInstance) {
-                window.squadChartInstance.destroy();
+        function updateChart(dates, playerCounts, squadName) {
+            if (playerChart) {
+                playerChart.destroy();
             }
 
-            // Create a new chart instance
-            window.squadChartInstance = new Chart(ctx, {
+            playerChart = new Chart(chartCanvas, {
                 type: 'line',
                 data: {
                     labels: dates,
                     datasets: [{
-                        label: `Player Count for ${squadName}`,
-                        data: counts,
-                        borderColor: 'blue',
+                        label: `${squadName} Player Count`,
+                        data: playerCounts,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        pointRadius: 3, // Smaller dots
+                        pointHoverRadius: 5,
                         borderWidth: 2,
-                        fill: false,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'blue',
-                        pointHoverBackgroundColor: 'red'
+                        fill: false
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false, // Allows the chart to resize dynamically
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    const date = context.label || '';
-                                    const count = context.raw === null ? 'No Data' : context.raw;
-                                    return `${date}: ${count} Players`;
+                                label: function (tooltipItem) {
+                                    const value = tooltipItem.raw;
+                                    const date = tooltipItem.label;
+                                    return `Date: ${date}, Count: ${value}`;
                                 }
                             }
                         }
@@ -143,15 +103,25 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Date'
+                                text: 'Date',
+                                font: { weight: 'bold' }
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Player Count'
+                                text: 'Player Count',
+                                font: { weight: 'bold' }
                             },
                             beginAtZero: true
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10
                         }
                     }
                 }
