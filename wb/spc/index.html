@@ -19,32 +19,91 @@
             max-width: 100%; /* Prevent overflow */
             height: 400px; /* Fixed height */
         }
+        .squad-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .squad-input input[type="text"] {
+            flex: 1;
+            margin-right: 10px;
+            padding: 5px;
+        }
+        .squad-input input[type="color"] {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Squad Comparison</h1>
-        <label for="squad-names">Enter Squad Names (comma-separated, up to 5):</label>
-        <input type="text" id="squad-names" placeholder="Squad1, Squad2, Squad3...">
+
+        <!-- Squad Input Fields -->
+        <div id="squad-inputs">
+            <!-- Dynamically generated squad inputs will go here -->
+        </div>
+        <button onclick="addSquadInput()">Add Squad</button>
         <button onclick="fetchComparisonData()">Compare</button>
         <p id="error-message" style="color: red; display: none;">One or more squads not found or data unavailable.</p>
 
+        <!-- Chart -->
         <canvas id="comparisonChart"></canvas>
     </div>
 
     <script>
+        const squadInputsContainer = document.getElementById('squad-inputs');
         const chartCanvas = document.getElementById('comparisonChart').getContext('2d');
         let comparisonChart;
 
-        function fetchComparisonData() {
-            const input = document.getElementById('squad-names').value.trim();
-            if (!input) return;
+        // Add a default set of inputs for squads
+        for (let i = 0; i < 2; i++) addSquadInput();
 
-            const squadNames = input.split(',').map(name => name.trim()).filter(name => name);
-            if (squadNames.length > 5) {
-                alert('You can only compare up to 5 squads.');
-                return;
-            }
+        // Function to add a new squad input field
+        function addSquadInput() {
+            const div = document.createElement('div');
+            div.className = 'squad-input';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = `Enter Squad ${squadInputsContainer.children.length + 1} Name`;
+
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.value = generateRandomColor();
+
+            const removeButton = document.createElement('button');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => div.remove();
+
+            div.appendChild(input);
+            div.appendChild(colorPicker);
+            div.appendChild(removeButton);
+
+            squadInputsContainer.appendChild(div);
+        }
+
+        // Function to generate a random color
+        function generateRandomColor() {
+            const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+            return `#${randomColor.padStart(6, '0')}`;
+        }
+
+        // Fetch and update the chart data
+        function fetchComparisonData() {
+            const inputs = Array.from(squadInputsContainer.children).map(div => ({
+                name: div.querySelector('input[type="text"]').value.trim(),
+                color: div.querySelector('input[type="color"]').value
+            }));
+
+            const validInputs = inputs.filter(input => input.name);
+            if (validInputs.length === 0) return alert('Please enter at least one squad name.');
+            if (validInputs.length > 5) return alert('You can compare up to 5 squads.');
 
             fetch('/data/playerdb.csv')
                 .then(response => response.text())
@@ -56,18 +115,18 @@
                     const datasets = [];
                     let dates;
 
-                    squadNames.forEach((squadName, index) => {
-                        const squadRow = rows.find(row => row.startsWith(squadName + ','));
+                    validInputs.forEach((input, index) => {
+                        const squadRow = rows.find(row => row.startsWith(input.name + ','));
                         if (squadRow) {
                             const squadData = squadRow.split(',').map(value => value.trim());
                             dates = headers.slice(1); // Skip "Squad"
                             const playerCounts = squadData.slice(1).map(value => (value ? parseInt(value) : null));
 
                             datasets.push({
-                                label: squadName,
+                                label: input.name,
                                 data: playerCounts,
-                                borderColor: `hsl(${index * 72}, 70%, 50%)`, // Unique color for each squad
-                                backgroundColor: `hsla(${index * 72}, 70%, 50%, 0.2)`,
+                                borderColor: input.color,
+                                backgroundColor: input.color + '33', // Add transparency
                                 pointRadius: 2,
                                 pointHoverRadius: 4,
                                 borderWidth: 2,
@@ -89,6 +148,7 @@
                 });
         }
 
+        // Update the chart
         function updateComparisonChart(dates, datasets) {
             if (comparisonChart) {
                 comparisonChart.destroy();
