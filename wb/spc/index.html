@@ -71,6 +71,9 @@
                 playerChart.destroy();
             }
 
+            const maxDataValue = Math.max(...playerCounts.filter(v => v !== null));
+            const yAxisMax = Math.ceil(Math.max(maxDataValue * 1.1, maxDataValue + 1)); // +10% or +1
+
             playerChart = new Chart(chartCanvas, {
                 type: 'line',
                 data: {
@@ -88,7 +91,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true, // Maintain the same aspect ratio
+                    maintainAspectRatio: true,
                     plugins: {
                         tooltip: {
                             callbacks: {
@@ -114,7 +117,14 @@
                                 text: 'Player Count',
                                 font: { weight: 'bold' }
                             },
-                            beginAtZero: true
+                            beginAtZero: true,
+                            suggestedMax: yAxisMax, // Adjust dynamically
+                            ticks: {
+                                stepSize: 1, // Whole numbers only
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : null;
+                                }
+                            }
                         }
                     },
                     layout: {
