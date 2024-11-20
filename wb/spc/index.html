@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Squad Comparison</title>
+    <title>Time-Series Squad Player Count</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -42,13 +42,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Squad Comparison</h1>
+        <h1>Time-Series Squad Player Count</h1>
 
         <!-- Squad Input Fields -->
         <div id="squad-inputs">
             <!-- Dynamically generated squad inputs will go here -->
         </div>
-        <button onclick="addSquadInput()">Add Squad</button>
+        <button onclick="addSquadInput()">+</button>
         <button onclick="fetchComparisonData()">Compare</button>
         <p id="error-message" style="color: red; display: none;">One or more squads not found or data unavailable.</p>
 
