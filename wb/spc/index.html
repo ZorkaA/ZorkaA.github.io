@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Squad Player Count</title>
+    <title>Squad Comparison</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -23,22 +23,28 @@
 </head>
 <body>
     <div class="container">
-        <h1>Squad Player Count</h1>
-        <label for="squad-name">Enter Squad Name:</label>
-        <input type="text" id="squad-name" placeholder="Squad name...">
-        <button onclick="fetchData()">Submit</button>
-        <p id="error-message" style="color: red; display: none;">Squad not found or data unavailable.</p>
+        <h1>Squad Comparison</h1>
+        <label for="squad-names">Enter Squad Names (comma-separated, up to 5):</label>
+        <input type="text" id="squad-names" placeholder="Squad1, Squad2, Squad3...">
+        <button onclick="fetchComparisonData()">Compare</button>
+        <p id="error-message" style="color: red; display: none;">One or more squads not found or data unavailable.</p>
 
-        <canvas id="playerChart"></canvas>
+        <canvas id="comparisonChart"></canvas>
     </div>
 
     <script>
-        const chartCanvas = document.getElementById('playerChart').getContext('2d');
-        let playerChart;
+        const chartCanvas = document.getElementById('comparisonChart').getContext('2d');
+        let comparisonChart;
 
-        function fetchData() {
-            const squadName = document.getElementById('squad-name').value.trim();
-            if (!squadName) return;
+        function fetchComparisonData() {
+            const input = document.getElementById('squad-names').value.trim();
+            if (!input) return;
+
+            const squadNames = input.split(',').map(name => name.trim()).filter(name => name);
+            if (squadNames.length > 5) {
+                alert('You can only compare up to 5 squads.');
+                return;
+            }
 
             fetch('/data/playerdb.csv')
                 .then(response => response.text())
@@ -47,47 +53,56 @@
                     const headers = rows[0].split(',').map(header => header.trim());
                     const squadIndex = headers.indexOf('Squad');
 
-                    const squadRow = rows.find(row => row.startsWith(squadName + ','));
-                    if (!squadRow) {
+                    const datasets = [];
+                    let dates;
+
+                    squadNames.forEach((squadName, index) => {
+                        const squadRow = rows.find(row => row.startsWith(squadName + ','));
+                        if (squadRow) {
+                            const squadData = squadRow.split(',').map(value => value.trim());
+                            dates = headers.slice(1); // Skip "Squad"
+                            const playerCounts = squadData.slice(1).map(value => (value ? parseInt(value) : null));
+
+                            datasets.push({
+                                label: squadName,
+                                data: playerCounts,
+                                borderColor: `hsl(${index * 72}, 70%, 50%)`, // Unique color for each squad
+                                backgroundColor: `hsla(${index * 72}, 70%, 50%, 0.2)`,
+                                pointRadius: 2,
+                                pointHoverRadius: 4,
+                                borderWidth: 2,
+                                fill: false
+                            });
+                        }
+                    });
+
+                    if (datasets.length === 0) {
                         document.getElementById('error-message').style.display = 'block';
                         return;
                     }
 
                     document.getElementById('error-message').style.display = 'none';
-
-                    const squadData = squadRow.split(',').map(value => value.trim());
-                    const dates = headers.slice(1); // Skip "Squad"
-                    const playerCounts = squadData.slice(1).map(value => (value ? parseInt(value) : null));
-
-                    updateChart(dates, playerCounts, squadName);
+                    updateComparisonChart(dates, datasets);
                 })
                 .catch(error => {
                     console.error('Error fetching data:', error);
                 });
         }
 
-        function updateChart(dates, playerCounts, squadName) {
-            if (playerChart) {
-                playerChart.destroy();
+        function updateComparisonChart(dates, datasets) {
+            if (comparisonChart) {
+                comparisonChart.destroy();
             }
 
-            const maxDataValue = Math.max(...playerCounts.filter(v => v !== null));
+            const allPlayerCounts = datasets.flatMap(dataset => dataset.data.filter(v => v !== null));
+            const maxDataValue = Math.max(...allPlayerCounts);
             const yAxisMax = Math.ceil(Math.max(maxDataValue * 1.1, maxDataValue + 1)); // +10% or +1
 
-            playerChart = new Chart(chartCanvas, {
+            comparisonChart = new Chart(chartCanvas, {
                 type: 'line',
                 data: {
                     labels: dates,
-                    datasets: [{
-                        label: `${squadName} Player Count`,
-                        data: playerCounts,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        pointRadius: 2, // Smaller dots
-                        pointHoverRadius: 4,
-                        borderWidth: 2,
-                        fill: false
-                    }]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
