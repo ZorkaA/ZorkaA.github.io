@@ -15,8 +15,9 @@
             margin: auto;
         }
         canvas {
-            width: 100% !important;
-            height: auto !important;
+            width: 100%; /* Dynamic width */
+            max-width: 100%; /* Prevent overflow */
+            height: 400px; /* Fixed height */
         }
     </style>
 </head>
@@ -79,15 +80,15 @@
                         data: playerCounts,
                         borderColor: 'rgba(75, 192, 192, 1)',
                         backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        pointRadius: 3, // Smaller dots
-                        pointHoverRadius: 5,
+                        pointRadius: 2, // Smaller dots
+                        pointHoverRadius: 4,
                         borderWidth: 2,
                         fill: false
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // Allows the chart to resize dynamically
+                    maintainAspectRatio: true, // Maintain the same aspect ratio
                     plugins: {
                         tooltip: {
                             callbacks: {
