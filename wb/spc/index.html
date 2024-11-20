@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squad Player Count</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        canvas {
+            margin-top: 20px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Squad Player Count</h1>
+    <div class="form-group">
+        <label for="squadInput">Enter Squad Name:</label>
+        <input type="text" id="squadInput" placeholder="e.g., AlphaSquad">
+        <button onclick="loadAndPlot()">Get Squad Data</button>
+    </div>
+    <canvas id="squadChart"></canvas>
+
+    <script>
+        // Function to load CSV and plot data
+        function loadAndPlot() {
+            const squadName = document.getElementById('squadInput').value.trim();
+            if (!squadName) {
+                alert('Please enter a squad name.');
+                return;
+            }
+
+            // Path to CSV file
+            const csvPath = '/data/playerdb.csv';
+
+            // Parse the CSV file
+            Papa.parse(csvPath, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+
+                    // Find the row corresponding to the entered squad
+                    const squadRow = data.find(row => row.Squad === squadName);
+                    if (!squadRow) {
+                        alert(`Squad "${squadName}" not found in the data.`);
+                        return;
+                    }
+
+                    // Extract dates (column names excluding "Squad") and player counts
+                    const dates = Object.keys(squadRow).filter(key => key !== 'Squad');
+                    const counts = dates.map(date => {
+                        const value = squadRow[date];
+                        return value === '' ? null : parseInt(value, 10);
+                    });
+
+                    // Create the chart
+                    plotChart(squadName, dates, counts);
+                },
+                error: function(error) {
+                    console.error('Error loading CSV:', error);
+                    alert('Failed to load squad data. Please try again later.');
+                }
+            });
+        }
+
+        // Function to plot the chart
+        function plotChart(squadName, dates, counts) {
+            const ctx = document.getElementById('squadChart').getContext('2d');
+
+            // Destroy the previous chart instance if it exists
+            if (window.squadChartInstance) {
+                window.squadChartInstance.destroy();
+            }
+
+            // Create a new chart instance
+            window.squadChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: `Player Count for ${squadName}`,
+                        data: counts,
+                        borderColor: 'blue',
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'blue',
+                        pointHoverBackgroundColor: 'red'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const date = context.label || '';
+                                    const count = context.raw === null ? 'No Data' : context.raw;
+                                    return `${date}: ${count} Players`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Player Count'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
