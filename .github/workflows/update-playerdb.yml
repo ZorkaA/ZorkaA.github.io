@@ -2,9 +2,10 @@ name: SPCDB Daily Update
 
 on:
   schedule:
-    # Runs at 00:00 UTC daily
+    # Runs at 01:30 UTC daily
     - cron: '30 1 * * *'
   workflow_dispatch:
+  
 jobs:
   update-playerdb:
     runs-on: ubuntu-latest
@@ -22,11 +23,11 @@ jobs:
         pip install requests beautifulsoup4 tqdm pandas numpy
 
     - name: Run Update Script
-      run: python scripts/update_playerdb.py
+      run: python update_playerdb.py
 
     - name: Deploy Updated CSV
       run: |
         mkdir -p data
-        mv ./scripts/playerdb.csv ./data/playerdb.csv
+        mv ./playerdb.csv ./data/playerdb.csv
       env:
         DEPLOY_PATH: ./data/playerdb.csv
