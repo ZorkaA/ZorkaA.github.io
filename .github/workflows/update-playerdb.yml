@@ -1,4 +1,4 @@
-name: SPCDB Daily Update
+name: SPCDB
 
 on:
   schedule:
@@ -25,9 +25,5 @@ jobs:
     - name: Run Update Script
       run: python update_playerdb.py
 
-    - name: Deploy Updated CSV
-      run: |
-        mkdir -p data
-        mv ./playerdb.csv ./data/playerdb.csv
-      env:
-        DEPLOY_PATH: ./data/playerdb.csv
+    - name: Verify Updated CSV
+      run: ls -l ./data/playerdb.csv
