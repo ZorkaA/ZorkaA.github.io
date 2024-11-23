@@ -7,7 +7,7 @@ from datetime import datetime
 import os
 
 # Define the path to the CSV file
-csv_file_path = './data/playerdb.csv'
+csv_file_path = '/data/playerdb.csv'
 
 # Load or initialize the DataFrame
 if os.path.exists(csv_file_path):
