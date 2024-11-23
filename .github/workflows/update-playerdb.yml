@@ -26,4 +26,4 @@ jobs:
       run: python update_playerdb.py
 
     - name: Verify Updated CSV
-      run: ls -l ./data/playerdb.csv
+      run: ls -l /data/playerdb.csv
