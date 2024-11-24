@@ -1,9 +1,8 @@
-name: SPCDB
+name: SPCDB 
 
 on:
   schedule:
-    # Runs at 01:30 UTC daily
-    - cron: '30 1 * * *'
+    - cron: '30 1 * * *'  # Runs daily at 01:30 UTC
   workflow_dispatch:
   
 jobs:
@@ -12,6 +11,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
+      with:
+        persist-credentials: false
 
     - name: Set Up Python
       uses: actions/setup-python@v4
@@ -23,7 +24,15 @@ jobs:
         pip install requests beautifulsoup4 tqdm pandas numpy
 
     - name: Run Update Script
-      run: python update_playerdb.py
+      run: |
+        python update_playerdb.py
 
-    - name: Verify Updated CSV
-      run: ls -l /data/playerdb.csv
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git add ./data/playerdb.csv
+        git commit -m "Update playerdb.csv"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
