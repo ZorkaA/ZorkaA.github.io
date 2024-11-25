@@ -31,7 +31,7 @@ squad_urls = [
     for url in [str(link.get('href'))]
 ]
 
-squad_urls = tqdm(squad_urls, desc="Processing squads")
+squad_urls = tqdm(squad_urls, desc="Processing")
 
 for squad in squad_urls:
     page = re.get(base_url + '/' + squad)
