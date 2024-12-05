@@ -1,64 +1,43 @@
 name: script
 
-on: 
+on:
   schedule:
-    - cron: '0 0 * * *'  # Run daily at midnight UTC
-  workflow_dispatch:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
-  run-script:
+  update-player-data:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+    # Step 1: Check out the repository
+    - name: Check out repository
+      uses: actions/checkout@v3
 
+    # Step 2: Set up Python
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.x'  # Specify your Python version
+        python-version: '3.10' # Specify Python version
 
-    - name: Install Dependencies
-      run: pip install requests tqdm
-
-    - name: Run Python Script
-      run: python script.py
-
-    - name: Split Large CSV into Smaller Files
+    # Step 3: Install dependencies
+    - name: Install dependencies
       run: |
-        # Calculate half of the file's rows and split
-        num_lines=$(wc -l < data/wbuserdata.csv)
-        split -l $((num_lines / 2)) data/wbuserdata.csv data/wbuserdata_part
-        
-        # Rename the split files for clarity
-        mv data/wbuserdata_partaa data/wbuserdata_part1.csv
-        mv data/wbuserdata_partab data/wbuserdata_part2.csv
+        python -m pip install --upgrade pip
+        pip install requests tqdm
 
-    - name: Commit and Push Part 1
+    # Step 4: Run the Python script
+    - name: Run the data collection script
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add data/wbuserdata_part1.csv
-        git commit -m "Update wbuserdata.csv - Part 1"
-        git push
+        python your_script.py
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Optional, if interacting with GitHub API
 
-    - name: Commit and Push Part 2
+    # Step 5: Commit and push changes
+    - name: Commit and push changes
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add data/wbuserdata_part2.csv
-        git commit -m "Update wbuserdata.csv - Part 2"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Recombine Parts into Full File
-      run: |
-        cat data/wbuserdata_part1.csv data/wbuserdata_part2.csv > data/wbuserdata.csv
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add data/wbuserdata.csv
-        git commit -m "Recombine wbuserdata.csv"
+        git commit -m "Daily update: Player data for $(date +'%Y-%m-%d')"
         git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
