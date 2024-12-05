@@ -29,7 +29,9 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git stash --include-untracked
         git pull --rebase
+        git stash pop || echo "No stashed changes to apply"
         git add ./data/playerdb.csv
         git commit -m "Update playerdb.csv" || echo "No changes to commit"
         git push
