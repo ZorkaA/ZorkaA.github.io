@@ -29,7 +29,7 @@ jobs:
     # Step 4: Run the Python script
     - name: Run the data collection script
       run: |
-        python your_script.py
+        python script.py
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Optional, if interacting with GitHub API
 
