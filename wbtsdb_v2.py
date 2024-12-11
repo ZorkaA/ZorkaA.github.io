@@ -79,7 +79,7 @@ squad_members_url = "https://wbapi.wbpjs.com/squad/getSquadMembers?squadName={}"
 player_info_url = "https://wbapi.wbpjs.com/players/getPlayer?uid={}"
 
 # Get the current date
-today = datetime.today().strftime('%d%m%Y')
+today = datetime.today().strftime('%m%d%Y')
 
 # Function to get squad list
 def get_squad_list():
