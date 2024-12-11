@@ -5,7 +5,7 @@ from datetime import datetime
 from tqdm import tqdm
 
 # Directory and file paths
-data_dir = '/Users/jack/Downloads/'
+data_dir = '/data'
 csv_file_path = os.path.join(data_dir, 'wbuserdata_ts.csv')
 uids_file_path = os.path.join(data_dir, 'uniqueuids.txt')
 
