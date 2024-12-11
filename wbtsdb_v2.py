@@ -6,8 +6,9 @@ from tqdm import tqdm
 
 # Directory and file paths
 data_dir = './data/'
-csv_file_path = './data/wbuserdata_ts.csv'#os.path.join(data_dir, 'wbuserdata_ts.csv')
-uids_file_path ='./data/uniqueuids.txt'#os.path.join(data_dir, 'uniqueuids.txt')
+csv_file_path = './data/wbuserdata_ts.csv'
+temp_csv_file_path = './data/wbuserdata_ts_temp.csv'
+uids_file_path = './data/uniqueuids.txt'
 
 # Mapping for human-readable names for damage dealt
 damage_names = {
@@ -79,7 +80,7 @@ squad_members_url = "https://wbapi.wbpjs.com/squad/getSquadMembers?squadName={}"
 player_info_url = "https://wbapi.wbpjs.com/players/getPlayer?uid={}"
 
 # Get the current date
-today = datetime.today().strftime('%m%d%Y')
+today = datetime.today().strftime('%d%m%Y')
 
 # Function to get squad list
 def get_squad_list():
@@ -108,7 +109,7 @@ def flatten_nested_categories(data, prefix):
     flattened = {}
     total = 0
     for key, value in data.items():
-        flattened[f"{prefix}_{key}"] = value
+        flattened[f"{prefix}_{damage_names.get(key, key)}"] = value
         total += value
     flattened[f"{prefix}_total"] = total
     return flattened
@@ -131,109 +132,87 @@ if not os.path.exists(csv_file_path):
                'Distance_Driven_Count_v60', 'Distance_Driven_Count_total', 'Kills_Per_Vehicle_v30', 'Kills_Per_Vehicle_v00',
                'Kills_Per_Vehicle_v10', 'Kills_Per_Vehicle_v40', 'Kills_Per_Vehicle_v01', 'Kills_Per_Vehicle_v21',
                'Kills_Per_Vehicle_v02', 'Kills_Per_Vehicle_v22', 'Kills_Per_Vehicle_v12', 'Kills_Per_Vehicle_v11',
-               'Kills_Per_Vehicle_v41', 'Kills_Per_Vehicle_v20', 'Kills_Per_Vehicle_v13', 'Kills_Per_Vehicle_v50',
-               'Kills_Per_Vehicle_v60', 'Kills_Per_Vehicle_total', 'Shots_Fired_Unzoomed_AirStrike', 'Shots_Fired_Unzoomed_BGM',
-               'Shots_Fired_Unzoomed_SCAR', 'Shots_Fired_Unzoomed_HuntingRifle', 'Shots_Fired_Unzoomed_FiftyCalSniper',
-               'Shots_Fired_Unzoomed_TankMinigun', 'Shots_Fired_Unzoomed_ARRifle', 'Shots_Fired_Unzoomed_Grenade',
-               'Shots_Fired_Unzoomed_Jet1Homing', 'Shots_Fired_Unzoomed_Jet1MachineGun', 'Shots_Fired_Unzoomed_SmokeGrenade',
-               'Shots_Fired_Unzoomed_Jet1Rockets', 'Shots_Fired_Unzoomed_Jet2Homing', 'Shots_Fired_Unzoomed_Jet2Rockets',
-               'Shots_Fired_Unzoomed_Jet2MachineGun', 'Shots_Fired_Unzoomed_Pistol', 'Shots_Fired_Unzoomed_Crossbow',
-               'Shots_Fired_Unzoomed_APCLvl1', 'Shots_Fired_Unzoomed_RPG', 'Shots_Fired_Unzoomed_APCLvl2',
-               'Shots_Fired_Unzoomed_HeliLvl2', 'Shots_Fired_Unzoomed_SniperRifle', 'Shots_Fired_Unzoomed_HeliLvl1',
-               'Shots_Fired_Unzoomed_AKRifle', 'Shots_Fired_Unzoomed_HeliMinigun', 'Shots_Fired_Unzoomed_HeliLvl3',
-               'Shots_Fired_Unzoomed_APCLvl3', 'Shots_Fired_Unzoomed_Jet1Rockets', 'Shots_Fired_Unzoomed_Knife',
-               'Shots_Fired_Unzoomed_Shotgun', 'Shots_Fired_Unzoomed_SMG', 'Shots_Fired_Unzoomed_Fists',
+               'Kills_Per_Vehicle_v41', 'Kills_Per_Vehicle_v50', 'Kills_Per_Vehicle_v60', 'Kills_Per_Vehicle_total',
+               'Shots_Fired_Unzoomed_AirStrike', 'Shots_Fired_Unzoomed_BGM', 'Shots_Fired_Unzoomed_TankLvl1',
+               'Shots_Fired_Unzoomed_APCLvl1', 'Shots_Fired_Unzoomed_HeliLvl1', 'Shots_Fired_Unzoomed_ARRifle',
+               'Shots_Fired_Unzoomed_Grenade', 'Shots_Fired_Unzoomed_Jet1Homing', 'Shots_Fired_Unzoomed_Jet1MachineGun',
+               'Shots_Fired_Unzoomed_SmokeGrenade', 'Shots_Fired_Unzoomed_Jet1Rockets', 'Shots_Fired_Unzoomed_Jet2Homing',
+               'Shots_Fired_Unzoomed_Jet2Rockets', 'Shots_Fired_Unzoomed_Jet2MachineGun', 'Shots_Fired_Unzoomed_Pistol',
+               'Shots_Fired_Unzoomed_Crossbow', 'Shots_Fired_Unzoomed_APCLvl2', 'Shots_Fired_Unzoomed_RPG',
+               'Shots_Fired_Unzoomed_APCLvl3', 'Shots_Fired_Unzoomed_HeliLvl2', 'Shots_Fired_Unzoomed_SniperRifle',
+               'Shots_Fired_Unzoomed_HeliLvl3', 'Shots_Fired_Unzoomed_APCLvl3', 'Shots_Fired_Unzoomed_Jet1Rockets',
+               'Shots_Fired_Unzoomed_Knife', 'Shots_Fired_Unzoomed_Shotgun', 'Shots_Fired_Unzoomed_SMG', 'Shots_Fired_Unzoomed_Fists',
                'Shots_Fired_Unzoomed_VSS', 'Shots_Fired_Unzoomed_MGTurret', 'Shots_Fired_Unzoomed_Revolver',
-               'Shots_Fired_Unzoomed_Minigun', 'Shots_Fired_Unzoomed_GrenadeLauncher', 'Shots_Fired_Unzoomed_TacticalShotgun',
-               'Shots_Fired_Unzoomed_VEK', 'Shots_Fired_Unzoomed_LMG', 'Shots_Fired_Unzoomed_total', 'Shots_Fired_Zoomed_ARRifle',
-               'Shots_Fired_Zoomed_HuntingRifle', 'Shots_Fired_Zoomed_SCAR', 'Shots_Fired_Zoomed_APCLvl1',
-               'Shots_Fired_Zoomed_TankMinigun', 'Shots_Fired_Zoomed_HeliMinigun', 'Shots_Fired_Zoomed_Jet1Rockets',
-               'Shots_Fired_Zoomed_Crossbow', 'Shots_Fired_Zoomed_HeliLvl2', 'Shots_Fired_Zoomed_Jet1MachineGun',
-               'Shots_Fired_Zoomed_SniperRifle', 'Shots_Fired_Zoomed_Jet1Homing', 'Shots_Fired_Zoomed_Shotgun',
-               'Shots_Fired_Zoomed_APCLvl2', 'Shots_Fired_Zoomed_RPG', 'Shots_Fired_Zoomed_APCLvl3', 'Shots_Fired_Zoomed_HeliLvl1',
+               'Shots_Fired_Unzoomed_Minigun', 'Shots_Fired_Unzoomed_total', 'Shots_Fired_Zoomed_ARRifle',
+               'Shots_Fired_Zoomed_HuntingRifle', 'Shots_Fired_Zoomed_FiftyCalSniper', 'Shots_Fired_Zoomed_TankMinigun',
+               'Shots_Fired_Zoomed_APCLvl1', 'Shots_Fired_Zoomed_Jet1Rockets', 'Shots_Fired_Zoomed_AKRifle',
+               'Shots_Fired_Zoomed_Pistol', 'Shots_Fired_Zoomed_Crossbow', 'Shots_Fired_Zoomed_APCLvl2',
+               'Shots_Fired_Zoomed_RPG', 'Shots_Fired_Zoomed_APCLvl3', 'Shots_Fired_Zoomed_HeliLvl1',
                'Shots_Fired_Zoomed_HeliLvl3', 'Shots_Fired_Zoomed_AKRifle', 'Shots_Fired_Zoomed_Pistol',
-               'Shots_Fired_Zoomed_Jet2MachineGun', 'Shots_Fired_Zoomed_Jet2Homing', 'Shots_Fired_Zoomed_HeliLvl1',
-               'Shots_Fired_Zoomed_Jet2Rockets', 'Shots_Fired_Zoomed_FiftyCalSniper', 'Shots_Fired_Zoomed_Jet1Rockets',
-               'Shots_Fired_Zoomed_Fists', 'Shots_Fired_Zoomed_VSS', 'Shots_Fired_Zoomed_Jet1Homing',
-               'Shots_Fired_Zoomed_MGTurret', 'Shots_Fired_Zoomed_LMG', 'Shots_Fired_Zoomed_GrenadeLauncher',
-               'Shots_Fired_Zoomed_TacticalShotgun', 'Shots_Fired_Zoomed_Jet2Rockets', 'Shots_Fired_Zoomed_Jet2Homing',
-               'Shots_Fired_Zoomed_SmokeGrenade', 'Shots_Fired_Zoomed_Revolver', 'Shots_Fired_Zoomed_Minigun',
-               'Shots_Fired_Zoomed_total', 'Shots_Hit_Unzoomed_APCLvl1', 'Shots_Hit_Unzoomed_BGM', 'Shots_Hit_Unzoomed_SCAR',
-               'Shots_Hit_Unzoomed_FiftyCalSniper', 'Shots_Hit_Unzoomed_ARRifle', 'Shots_Hit_Unzoomed_Jet1MachineGun',
-               'Shots_Hit_Unzoomed_SmokeGrenade', 'Shots_Hit_Unzoomed_AKRifle', 'Shots_Hit_Unzoomed_Crossbow',
-               'Shots_Hit_Unzoomed_Jet1Rockets', 'Shots_Hit_Unzoomed_RPG', 'Shots_Hit_Unzoomed_Shotgun',
-               'Shots_Hit_Unzoomed_APCLvl2', 'Shots_Hit_Unzoomed_HeliLvl2', 'Shots_Hit_Unzoomed_SniperRifle',
-               'Shots_Hit_Unzoomed_HeliLvl1', 'Shots_Hit_Unzoomed_Pistol', 'Shots_Hit_Unzoomed_Knife',
-               'Shots_Hit_Unzoomed_Jet2MachineGun', 'Shots_Hit_Unzoomed_GrenadeLauncher', 'Shots_Hit_Unzoomed_HeliLvl3',
-               'Shots_Hit_Unzoomed_APCLvl3', 'Shots_Hit_Unzoomed_Jet1Homing', 'Shots_Hit_Unzoomed_Fists',
-               'Shots_Hit_Unzoomed_TankMinigun', 'Shots_Hit_Unzoomed_VSS', 'Shots_Hit_Unzoomed_Revolver',
-               'Shots_Hit_Unzoomed_Minigun', 'Shots_Hit_Unzoomed_SMG', 'Shots_Hit_Unzoomed_Jet2Homing',
-               'Shots_Hit_Unzoomed_Jet1Rockets', 'Shots_Hit_Unzoomed_Jet2Rockets', 'Shots_Hit_Unzoomed_HuntingRifle',
-               'Shots_Hit_Unzoomed_MGTurret', 'Shots_Hit_Unzoomed_TacticalShotgun', 'Shots_Hit_Unzoomed_VEK',
-               'Shots_Hit_Unzoomed_LMG', 'Shots_Hit_Unzoomed_total', 'Shots_Hit_Zoomed_SCAR', 'Shots_Hit_Zoomed_HuntingRifle',
-               'Shots_Hit_Zoomed_ARRifle', 'Shots_Hit_Zoomed_TankMinigun', 'Shots_Hit_Zoomed_APCLvl1',
-               'Shots_Hit_Zoomed_Jet1Rockets', 'Shots_Hit_Zoomed_AKRifle', 'Shots_Hit_Zoomed_Crossbow',
-               'Shots_Hit_Zoomed_HeliLvl2', 'Shots_Hit_Zoomed_Jet1MachineGun', 'Shots_Hit_Zoomed_SniperRifle',
-               'Shots_Hit_Zoomed_Jet1Homing', 'Shots_Hit_Zoomed_Shotgun', 'Shots_Hit_Zoomed_APCLvl2',
-               'Shots_Hit_Zoomed_RPG', 'Shots_Hit_Zoomed_APCLvl3', 'Shots_Hit_Zoomed_HeliLvl1', 'Shots_Hit_Zoomed_HeliLvl3',
-               'Shots_Hit_Zoomed_Pistol', 'Shots_Hit_Zoomed_Jet2MachineGun', 'Shots_Hit_Zoomed_Jet2Homing',
-               'Shots_Hit_Zoomed_HeliLvl1', 'Shots_Hit_Zoomed_Jet2Rockets', 'Shots_Hit_Zoomed_FiftyCalSniper',
-               'Shots_Hit_Zoomed_Jet1Rockets', 'Shots_Hit_Zoomed_Fists', 'Shots_Hit_Zoomed_VSS', 'Shots_Hit_Zoomed_Jet1Homing',
-               'Shots_Hit_Zoomed_MGTurret', 'Shots_Hit_Zoomed_LMG', 'Shots_Hit_Zoomed_GrenadeLauncher',
-               'Shots_Hit_Zoomed_TacticalShotgun', 'Shots_Hit_Zoomed_Jet2Rockets', 'Shots_Hit_Zoomed_Jet2Homing',
-               'Shots_Hit_Zoomed_SmokeGrenade', 'Shots_Hit_Zoomed_Revolver', 'Shots_Hit_Zoomed_Minigun',
-               'Shots_Hit_Zoomed_total', 'Damage_Dealt_BGM', 'Damage_Dealt_APCLvl1', 'Damage_Dealt_ARRifle',
-               'Damage_Dealt_HuntingRifle', 'Damage_Dealt_SCAR', 'Damage_Dealt_TankMinigun', 'Damage_Dealt_FiftyCalSniper',
-               'Damage_Dealt_TankLvl1', 'Damage_Dealt_Jet1Rockets', 'Damage_Dealt_Jet1Homing', 'Damage_Dealt_SmokeGrenade',
-               'Damage_Dealt_AirStrike', 'Damage_Dealt_AKRifle', 'Damage_Dealt_Jet1MachineGun', 'Damage_Dealt_Jet2Homing',
-               'Damage_Dealt_Jet2MachineGun', 'Damage_Dealt_Pistol', 'Damage_Dealt_Crossbow', 'Damage_Dealt_APCLvl2',
-               'Damage_Dealt_RPG', 'Damage_Dealt_APCLvl3', 'Damage_Dealt_HeliLvl2', 'Damage_Dealt_SniperRifle',
-               'Damage_Dealt_HeliLvl1', 'Damage_Dealt_HeliLvl3', 'Damage_Dealt_AKRifle', 'Damage_Dealt_GrenadeLauncher',
-               'Damage_Dealt_HeliLvl3', 'Damage_Dealt_APCLvl3', 'Damage_Dealt_Jet1Rockets', 'Damage_Dealt_Knife',
-               'Damage_Dealt_Shotgun', 'Damage_Dealt_SMG', 'Damage_Dealt_Fists', 'Damage_Dealt_VSS', 'Damage_Dealt_MGTurret',
-               'Damage_Dealt_Revolver', 'Damage_Dealt_Minigun', 'Damage_Dealt_Grenade', 'Damage_Dealt_TacticalShotgun',
-               'Damage_Dealt_VEK', 'Damage_Dealt_LMG', 'Damage_Dealt_total', 'Damage_Received_HeliLvl2', 'Damage_Received_ARRifle',
-               'Damage_Received_SCAR', 'Damage_Received_SniperRifle', 'Damage_Received_Jet1Rockets', 'Damage_Received_Shotgun',
-               'Damage_Received_APCLvl2', 'Damage_Received_HeliLvl3', 'Damage_Received_AKRifle', 'Damage_Received_Crossbow',
-               'Damage_Received_Jet1MachineGun', 'Damage_Received_Pistol', 'Damage_Received_Grenade', 'Damage_Received_HeliMinigun',
-               'Damage_Received_Jet2MachineGun', 'Damage_Received_RPG', 'Damage_Received_APCLvl3', 'Damage_Received_Shotgun',
-               'Damage_Received_HeliLvl1', 'Damage_Received_Pistol', 'Damage_Received_Knife', 'Damage_Received_Jet2MachineGun',
-               'Damage_Received_GrenadeLauncher', 'Damage_Received_HeliLvl3', 'Damage_Received_APCLvl3', 'Damage_Received_Jet1Homing',
-               'Damage_Received_Fists', 'Damage_Received_TankMinigun', 'Damage_Received_VSS', 'Damage_Received_Revolver',
-               'Damage_Received_Minigun', 'Damage_Received_SMG', 'Damage_Received_Jet2Homing', 'Damage_Received_Jet1Rockets',
-               'Damage_Received_Jet2Rockets', 'Damage_Received_HuntingRifle', 'Damage_Received_MGTurret',
-               'Damage_Received_TacticalShotgun', 'Damage_Received_VEK', 'Damage_Received_LMG', 'Damage_Received_total',
-               'Kills_Per_Weapon_SCAR', 'Kills_Per_Weapon_HuntingRifle', 'Kills_Per_Weapon_TankMinigun', 'Kills_Per_Weapon_ARRifle',
-               'Kills_Per_Weapon_FiftyCalSniper', 'Kills_Per_Weapon_BGM', 'Kills_Per_Weapon_SmokeGrenade', 'Kills_Per_Weapon_AKRifle',
-               'Kills_Per_Weapon_Crossbow', 'Kills_Per_Weapon_Jet1Homing', 'Kills_Per_Weapon_Jet1MachineGun',
-               'Kills_Per_Weapon_Pistol', 'Kills_Per_Weapon_Jet2Homing', 'Kills_Per_Weapon_Jet2MachineGun',
-               'Kills_Per_Weapon_SniperRifle', 'Kills_Per_Weapon_Jet2Rockets', 'Kills_Per_Weapon_Jet1Rockets',
-               'Kills_Per_Weapon_Grenade', 'Kills_Per_Weapon_HeliLvl2', 'Kills_Per_Weapon_Shotgun', 'Kills_Per_Weapon_APCLvl2',
-               'Kills_Per_Weapon_RPG', 'Kills_Per_Weapon_APCLvl3', 'Kills_Per_Weapon_HeliLvl1', 'Kills_Per_Weapon_HeliLvl3',
+               'Shots_Fired_Zoomed_Jet2Homing', 'Shots_Fired_Zoomed_Jet2MachineGun', 'Shots_Fired_Zoomed_total',
+               'Shots_Hit_Unzoomed_APCLvl1', 'Shots_Hit_Unzoomed_BGM', 'Shots_Hit_Unzoomed_ARRifle',
+               'Shots_Hit_Unzoomed_FiftyCalSniper', 'Shots_Hit_Unzoomed_TankLvl2', 'Shots_Hit_Unzoomed_HeliLvl2',
+               'Shots_Hit_Unzoomed_SniperRifle', 'Shots_Hit_Unzoomed_HeliLvl1', 'Shots_Hit_Unzoomed_Pistol',
+               'Shots_Hit_Unzoomed_Knife', 'Shots_Hit_Unzoomed_Jet2MachineGun', 'Shots_Hit_Unzoomed_GrenadeLauncher',
+               'Shots_Hit_Unzoomed_HeliLvl3', 'Shots_Hit_Unzoomed_APCLvl3', 'Shots_Hit_Unzoomed_Jet1Homing',
+               'Shots_Hit_Unzoomed_Fists', 'Shots_Hit_Unzoomed_TankMinigun', 'Shots_Hit_Unzoomed_VSS',
+               'Shots_Hit_Unzoomed_Revolver', 'Shots_Hit_Unzoomed_Minigun', 'Shots_Hit_Unzoomed_SMG',
+               'Shots_Hit_Unzoomed_total', 'Shots_Hit_Zoomed_SCAR', 'Shots_Hit_Zoomed_HuntingRifle',
+               'Shots_Hit_Zoomed_ARRifle', 'Shots_Hit_Zoomed_TankMinigun', 'Shots_Hit_Zoomed_FiftyCalSniper',
+               'Shots_Hit_Zoomed_HeliLvl1', 'Shots_Hit_Zoomed_Pistol', 'Shots_Hit_Zoomed_Knife',
+               'Shots_Hit_Zoomed_Jet2MachineGun', 'Shots_Hit_Zoomed_GrenadeLauncher', 'Shots_Hit_Zoomed_HeliLvl3',
+               'Shots_Hit_Zoomed_APCLvl3', 'Shots_Hit_Zoomed_Jet1Homing', 'Shots_Hit_Zoomed_Fists',
+               'Shots_Hit_Zoomed_TankMinigun', 'Shots_Hit_Zoomed_VSS', 'Shots_Hit_Zoomed_Revolver',
+               'Shots_Hit_Zoomed_Minigun', 'Shots_Hit_Zoomed_total', 'Damage_Dealt_BGM', 'Damage_Dealt_APCLvl1',
+               'Damage_Dealt_ARRifle', 'Damage_Dealt_HuntingRifle', 'Damage_Dealt_SCAR', 'Damage_Dealt_TankMinigun',
+               'Damage_Dealt_FiftyCalSniper', 'Damage_Dealt_TankLvl1', 'Damage_Dealt_Jet1Rockets', 'Damage_Dealt_Jet1Homing',
+               'Damage_Dealt_SmokeGrenade', 'Damage_Dealt_AirStrike', 'Damage_Dealt_AKRifle', 'Damage_Dealt_Jet1MachineGun',
+               'Damage_Dealt_Jet2Homing', 'Damage_Dealt_Jet2MachineGun', 'Damage_Dealt_Pistol', 'Damage_Dealt_Crossbow',
+               'Damage_Dealt_APCLvl2', 'Damage_Dealt_RPG', 'Damage_Dealt_APCLvl3', 'Damage_Dealt_HeliLvl2',
+               'Damage_Dealt_SniperRifle', 'Damage_Dealt_HeliLvl1', 'Damage_Dealt_HeliLvl3', 'Damage_Dealt_AKRifle',
+               'Damage_Dealt_GrenadeLauncher', 'Damage_Dealt_HeliLvl3', 'Damage_Dealt_APCLvl3', 'Damage_Dealt_Jet1Rockets',
+               'Damage_Dealt_Knife', 'Damage_Dealt_Shotgun', 'Damage_Dealt_SMG', 'Damage_Dealt_Fists',
+               'Damage_Dealt_VSS', 'Damage_Dealt_MGTurret', 'Damage_Dealt_Revolver', 'Damage_Dealt_Minigun',
+               'Damage_Dealt_Grenade', 'Damage_Dealt_TacticalShotgun', 'Damage_Dealt_VEK', 'Damage_Dealt_LMG',
+               'Damage_Dealt_total', 'Damage_Received_HeliLvl2', 'Damage_Received_ARRifle', 'Damage_Received_SCAR',
+               'Damage_Received_Jet1Rockets', 'Damage_Received_Shotgun', 'Damage_Received_APCLvl2',
+               'Damage_Received_HeliLvl3', 'Damage_Received_AKRifle', 'Damage_Received_Pistol',
+               'Damage_Received_Grenade', 'Damage_Received_HeliMinigun', 'Damage_Received_Jet2MachineGun',
+               'Damage_Received_RPG', 'Damage_Received_APCLvl3', 'Damage_Received_Shotgun',
+               'Damage_Received_HeliLvl1', 'Damage_Received_Pistol', 'Damage_Received_Knife',
+               'Damage_Received_Jet2MachineGun', 'Damage_Received_GrenadeLauncher', 'Damage_Received_HeliLvl3',
+               'Damage_Received_APCLvl3', 'Damage_Received_Jet1Homing', 'Damage_Received_Fists',
+               'Damage_Received_TankMinigun', 'Damage_Received_VSS', 'Damage_Received_Revolver',
+               'Damage_Received_Minigun', 'Damage_Received_SMG', 'Damage_Received_TacticalShotgun',
+               'Damage_Received_VEK', 'Damage_Received_LMG', 'Damage_Received_total', 'Kills_Per_Weapon_SCAR',
+               'Kills_Per_Weapon_HuntingRifle', 'Kills_Per_Weapon_TankMinigun', 'Kills_Per_Weapon_ARRifle',
+               'Kills_Per_Weapon_FiftyCalSniper', 'Kills_Per_Weapon_BGM', 'Kills_Per_Weapon_SmokeGrenade',
+               'Kills_Per_Weapon_AKRifle', 'Kills_Per_Weapon_Pistol', 'Kills_Per_Weapon_Jet1Homing',
+               'Kills_Per_Weapon_Jet1MachineGun', 'Kills_Per_Weapon_SniperRifle', 'Kills_Per_Weapon_Jet2Rockets',
+               'Kills_Per_Weapon_Jet1Rockets', 'Kills_Per_Weapon_Grenade', 'Kills_Per_Weapon_HeliLvl2',
+               'Kills_Per_Weapon_Shotgun', 'Kills_Per_Weapon_APCLvl2', 'Kills_Per_Weapon_RPG',
+               'Kills_Per_Weapon_APCLvl3', 'Kills_Per_Weapon_HeliLvl1', 'Kills_Per_Weapon_HeliLvl3',
                'Kills_Per_Weapon_GrenadeLauncher', 'Kills_Per_Weapon_HeliLvl3', 'Kills_Per_Weapon_APCLvl3',
-               'Kills_Per_Weapon_Jet1Rockets', 'Kills_Per_Weapon_Knife', 'Kills_Per_Weapon_Shotgun', 'Kills_Per_Weapon_SMG',
-               'Kills_Per_Weapon_Fists', 'Kills_Per_Weapon_VSS', 'Kills_Per_Weapon_MGTurret', 'Kills_Per_Weapon_Revolver',
-               'Kills_Per_Weapon_Minigun', 'Kills_Per_Weapon_Jet1Homing', 'Kills_Per_Weapon_MGTurret', 'Kills_Per_Weapon_LMG',
-               'Kills_Per_Weapon_GrenadeLauncher', 'Kills_Per_Weapon_TacticalShotgun', 'Kills_Per_Weapon_Jet2Rockets',
-               'Kills_Per_Weapon_Jet2Homing', 'Kills_Per_Weapon_SmokeGrenade', 'Kills_Per_Weapon_Revolver',
-               'Kills_Per_Weapon_Minigun', 'Kills_Per_Weapon_total', 'Deaths_SniperRifle', 'Deaths_Shotgun', 'Deaths_SMG',
-               'Deaths_APCLvl2', 'Deaths_HeliLvl3', 'Deaths_AKRifle', 'Deaths_Crossbow', 'Deaths_Jet1MachineGun',
-               'Deaths_Pistol', 'Deaths_Grenade', 'Deaths_HeliMinigun', 'Deaths_Jet2MachineGun', 'Deaths_RPG',
-               'Deaths_APCLvl3', 'Deaths_Shotgun', 'Deaths_HeliLvl1', 'Deaths_Pistol', 'Deaths_Knife',
-               'Deaths_Jet2MachineGun', 'Deaths_GrenadeLauncher', 'Deaths_HeliLvl3', 'Deaths_APCLvl3', 'Deaths_Jet1Homing',
-               'Deaths_Fists', 'Deaths_TankMinigun', 'Deaths_VSS', 'Deaths_Revolver', 'Deaths_Minigun', 'Deaths_SMG',
-               'Deaths_Jet2Homing', 'Deaths_Jet1Rockets', 'Deaths_Jet2Rockets', 'Deaths_HuntingRifle', 'Deaths_MGTurret',
-               'Deaths_TacticalShotgun', 'Deaths_VEK', 'Deaths_LMG', 'Deaths_total', 'Headshots_HuntingRifle',
-               'Headshots_SCAR', 'Headshots_Jet1MachineGun', 'Headshots_FiftyCalSniper', 'Headshots_ARRifle',
-               'Headshots_Jet1Homing', 'Headshots_AKRifle', 'Headshots_Crossbow', 'Headshots_HeliLvl2',
-               'Headshots_Jet1Rockets', 'Headshots_RPG', 'Headshots_Shotgun', 'Headshots_APCLvl2', 'Headshots_HeliLvl2',
-               'Headshots_SniperRifle', 'Headshots_HeliLvl1', 'Headshots_Pistol', 'Headshots_Knife', 'Headshots_Jet2MachineGun',
+               'Kills_Per_Weapon_Jet1Rockets', 'Kills_Per_Weapon_Knife', 'Kills_Per_Weapon_Shotgun',
+               'Kills_Per_Weapon_SMG', 'Kills_Per_Weapon_Fists', 'Kills_Per_Weapon_VSS', 'Kills_Per_Weapon_MGTurret',
+               'Kills_Per_Weapon_Revolver', 'Kills_Per_Weapon_Minigun', 'Kills_Per_Weapon_Jet1Homing',
+               'Kills_Per_Weapon_MGTurret', 'Kills_Per_Weapon_LMG', 'Kills_Per_Weapon_GrenadeLauncher',
+               'Kills_Per_Weapon_TacticalShotgun', 'Kills_Per_Weapon_Jet2Rockets', 'Kills_Per_Weapon_Jet2Homing',
+               'Kills_Per_Weapon_SmokeGrenade', 'Kills_Per_Weapon_Revolver', 'Kills_Per_Weapon_Minigun',
+               'Kills_Per_Weapon_total', 'Deaths_SniperRifle', 'Deaths_Shotgun', 'Deaths_SMG', 'Deaths_APCLvl2',
+               'Deaths_HeliLvl3', 'Deaths_AKRifle', 'Deaths_Crossbow', 'Deaths_Jet1MachineGun', 'Deaths_Pistol',
+               'Deaths_Grenade', 'Deaths_HeliMinigun', 'Deaths_Jet2MachineGun', 'Deaths_RPG', 'Deaths_APCLvl3',
+               'Deaths_Shotgun', 'Deaths_HeliLvl1', 'Deaths_Pistol', 'Deaths_Knife', 'Deaths_Jet2MachineGun',
+               'Deaths_GrenadeLauncher', 'Deaths_HeliLvl3', 'Deaths_APCLvl3', 'Deaths_Jet1Homing', 'Deaths_Fists',
+               'Deaths_TankMinigun', 'Deaths_VSS', 'Deaths_Revolver', 'Deaths_Minigun', 'Deaths_total',
+               'Headshots_HuntingRifle', 'Headshots_SCAR', 'Headshots_Jet1MachineGun', 'Headshots_FiftyCalSniper',
+               'Headshots_ARRifle', 'Headshots_Jet1Homing', 'Headshots_AKRifle', 'Headshots_Crossbow',
+               'Headshots_HeliLvl2', 'Headshots_Jet1Rockets', 'Headshots_RPG', 'Headshots_Shotgun',
+               'Headshots_APCLvl2', 'Headshots_HeliMinigun', 'Headshots_Jet2MachineGun', 'Headshots_SniperRifle',
+               'Headshots_HeliLvl1', 'Headshots_Pistol', 'Headshots_Knife', 'Headshots_Jet2MachineGun',
                'Headshots_GrenadeLauncher', 'Headshots_HeliLvl3', 'Headshots_APCLvl3', 'Headshots_Jet1Homing',
-               'Headshots_Fists', 'Headshots_TankMinigun', 'Headshots_VSS', 'Headshots_Revolver', 'Headshots_Minigun',
-               'Headshots_SMG', 'Headshots_Jet2Homing', 'Headshots_Jet1Rockets', 'Headshots_Jet2Rockets',
-               'Headshots_HuntingRifle', 'Headshots_MGTurret', 'Headshots_TacticalShotgun', 'Headshots_VEK',
-               'Headshots_LMG', 'Headshots_total'
-               ]
+               'Headshots_Fists', 'Headshots_TankMinigun', 'Headshots_VSS', 'Headshots_Revolver',
+               'Headshots_Minigun', 'Headshots_total']
     os.makedirs(data_dir, exist_ok=True)
     with open(csv_file_path, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -327,8 +306,8 @@ def process_and_append_data():
                   + list(damage_dealt.values()) + list(damage_received.values()) + list(kills_per_weapon.values()) \
                   + list(deaths.values()) + list(headshots.values())
 
-                # Append data to the CSV file
-                with open(csv_file_path, 'a', newline='') as file:
+                # Append data to the temporary CSV file
+                with open(temp_csv_file_path, 'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerow(row)
 
@@ -337,6 +316,9 @@ def process_and_append_data():
 
             # Update the progress bar
             progress_bar.update(1)
+
+    # Move the temporary CSV file to the final CSV file
+    os.replace(temp_csv_file_path, csv_file_path)
 
 # Run the script
 if __name__ == "__main__":
