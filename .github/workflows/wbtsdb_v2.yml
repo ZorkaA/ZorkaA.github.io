@@ -3,8 +3,7 @@ name: wbtsdb v2
 on:
   schedule:
     - cron: '0 0 * * *'  # Runs at 12 AM daily
-  workflow_dispatch:
-
+  workflow_dispatch: 
 
 jobs:
   fetch-data:
@@ -30,8 +29,8 @@ jobs:
     - name: Split CSV into chunks
       id: split_csv
       run: |
-        # Split the CSV into chunks of approximately 95MB each
-        split -b 95M data/wbuserdata_ts.csv data/wbuserdata_ts_part_
+        # Split the temporary CSV file into chunks of approximately 95MB each
+        split -b 95M ./data/wbuserdata_ts_temp.csv ./data/wbuserdata_ts_part_
 
     - name: Append and commit chunks
       run: |
@@ -39,10 +38,10 @@ jobs:
         git config --global user.email 'github-actions@github.com'
 
         # Append each chunk to the existing CSV file and commit
-        for part in data/wbuserdata_ts_part_*
+        for part in ./data/wbuserdata_ts_part_*
         do
-          cat $part >> data/wbuserdata_ts.csv
-          git add data/wbuserdata_ts.csv
+          cat $part >> ./data/wbuserdata_ts.csv
+          git add ./data/wbuserdata_ts.csv
           git commit -m "Append chunk $part to wbuserdata_ts.csv"
           git push
         done
