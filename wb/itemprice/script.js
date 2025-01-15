@@ -17,11 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Fetch all items
             const response = await fetch('https://store1.warbrokers.io/301//get_item_list.php');
-            const data = await response.json();
+            const rawData = await response.text();  // Get raw response as text
+
+            // Split the string into pairs (id, price)
+            const itemsArray = rawData.split(',');  // Split by commas
+            const items = [];
+
+            for (let i = 0; i < itemsArray.length; i += 2) {
+                const id = itemsArray[i];
+                const price = parseInt(itemsArray[i + 1], 10);
+                items.push({ id, price });
+            }
 
             // Filter items by input
             const idsArray = itemIds.split(',').map(id => id.trim());
-            const itemsToShow = data.items.filter(item => idsArray.includes(item.id));
+            const itemsToShow = items.filter(item => idsArray.includes(item.id));
 
             if (itemsToShow.length === 0) {
                 outputDiv.innerHTML = `<p style="color: red;">No items found for the provided IDs.</p>`;
