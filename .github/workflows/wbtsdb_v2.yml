@@ -1,8 +1,8 @@
 name: wbtsdb v2
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # Runs at 12 AM daily
+#  schedule:
+#    - cron: '0 0 * * *'  # Runs at 12 AM daily
   workflow_dispatch:
 
 
