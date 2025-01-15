@@ -1,41 +1,34 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Fetch button and input fields
+    // Elements
     const fetchPricesButton = document.getElementById('fetch-prices');
-    const tokenInput = document.getElementById('user-token');
     const idsInput = document.getElementById('item-ids');
     const outputDiv = document.getElementById('output');
     const downloadButton = document.getElementById('download-csv');
 
     fetchPricesButton.addEventListener('click', async () => {
-        const token = tokenInput.value.trim();
         const itemIds = idsInput.value.trim();
 
-        // Validate inputs
-        if (!token || !itemIds) {
-            outputDiv.innerHTML = `<p style="color: red;">Please provide both token and item IDs.</p>`;
+        // Validate input
+        if (!itemIds) {
+            outputDiv.innerHTML = `<p style="color: red;">Please provide item IDs.</p>`;
             return;
         }
 
-        // Fetch prices
         try {
-            const response = await fetch(`https://store1.warbrokers.io/301//get_item_list.php?token=${token}`);
+            // Fetch all items
+            const response = await fetch('https://store1.warbrokers.io/301//get_item_list.php');
             const data = await response.json();
 
-            // If 'test' is entered, display all items
-            let itemsToShow = [];
-            if (itemIds.toLowerCase() === 'test') {
-                itemsToShow = data.items;
-            } else {
-                const idsArray = itemIds.split(',').map(id => id.trim());
-                itemsToShow = data.items.filter(item => idsArray.includes(item.id));
-            }
+            // Filter items by input
+            const idsArray = itemIds.split(',').map(id => id.trim());
+            const itemsToShow = data.items.filter(item => idsArray.includes(item.id));
 
-            // Generate table
             if (itemsToShow.length === 0) {
                 outputDiv.innerHTML = `<p style="color: red;">No items found for the provided IDs.</p>`;
                 return;
             }
 
+            // Generate table
             const tableHtml = `
                 <table border="1">
                     <thead>
