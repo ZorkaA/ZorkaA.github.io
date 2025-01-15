@@ -10,49 +10,59 @@ document.getElementById('fetchPricesButton').addEventListener('click', () => {
 
     // Prepare the API URL
     const apiUrl = `https://store1.warbrokers.io/301//get_item_list.php?token=${encodeURIComponent(tokenInput)}`;
+    console.log('Fetching data from URL:', apiUrl);
 
     fetch(apiUrl)
         .then(response => {
+            console.log('Response received:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.text(); // Get the response as a string
         })
         .then(data => {
+            console.log('Raw data received:', data);
+
+            let parsedData;
             try {
-                const parsedData = JSON.parse(data); // Parse the JSON response
-                const items = parsedData.items;
-
-                // Process input IDs or fetch all items if 'test' is entered
-                const itemIds = idInput.toLowerCase() === 'test'
-                    ? items.map(item => item.id)
-                    : idInput.split(',').map(id => id.trim());
-
-                const resultTable = document.getElementById('outputTable');
-                resultTable.innerHTML = ''; // Clear previous results
-
-                // Populate the table with results
-                const filteredItems = items.filter(item => itemIds.includes(item.id));
-                if (filteredItems.length === 0) {
-                    alert('No matching items found.');
-                    return;
-                }
-
-                filteredItems.forEach(item => {
-                    const row = resultTable.insertRow();
-                    row.insertCell(0).textContent = item.id;
-                    row.insertCell(1).textContent = Math.round(item.price); // Round price to nearest whole number
-                });
-
-                document.getElementById('downloadButton').style.display = 'block'; // Show download button
+                parsedData = JSON.parse(data); // Parse the JSON response
+                console.log('Parsed data:', parsedData);
             } catch (error) {
-                console.error('Error processing data:', error);
-                alert('Failed to process data. Please check your input or try again.');
+                throw new Error('Failed to parse JSON data.');
             }
+
+            const items = parsedData.items;
+
+            // Process input IDs or fetch all items if 'test' is entered
+            const itemIds = idInput.toLowerCase() === 'test'
+                ? items.map(item => item.id)
+                : idInput.split(',').map(id => id.trim());
+
+            console.log('Filtered item IDs:', itemIds);
+
+            const resultTable = document.getElementById('outputTable');
+            resultTable.innerHTML = ''; // Clear previous results
+
+            // Populate the table with results
+            const filteredItems = items.filter(item => itemIds.includes(item.id));
+            console.log('Filtered items:', filteredItems);
+
+            if (filteredItems.length === 0) {
+                alert('No matching items found.');
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const row = resultTable.insertRow();
+                row.insertCell(0).textContent = item.id;
+                row.insertCell(1).textContent = Math.round(item.price); // Round price to nearest whole number
+            });
+
+            document.getElementById('downloadButton').style.display = 'block'; // Show download button
         })
         .catch(error => {
-            console.error('Error fetching data:', error);
-            alert('Failed to fetch data. Please check the token or try again.');
+            console.error('Error:', error);
+            alert('An error occurred: ' + error.message);
         });
 });
 
