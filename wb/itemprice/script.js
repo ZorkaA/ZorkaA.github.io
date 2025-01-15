@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const itemsWithImagesPromises = items.map(async (item) => {
             const imageUrl = getItemImageUrl(item.id);
             const isValidImage = await checkIfImageExists(imageUrl);
-            const imageElement = isValidImage ? `<img src="${imageUrl}" alt="${item.id}" width="50" height="50">` : 'No Image';
+            const imageElement = isValidImage ? `<img src="${imageUrl}" alt="${item.id}" style="max-width: 50px; height: auto;">` : 'No Image';
             return { ...item, imageElement };
         });
 
