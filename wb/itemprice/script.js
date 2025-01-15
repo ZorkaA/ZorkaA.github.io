@@ -93,15 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const outputItems = async (items) => {
-        // Await image check for all items before rendering
-        const itemsWithImages = [];
-        
-        for (const item of items) {
+        // Create an array of promises to check images
+        const itemsWithImagesPromises = items.map(async (item) => {
             const imageUrl = getItemImageUrl(item.id);
             const isValidImage = await checkIfImageExists(imageUrl);
             const imageElement = isValidImage ? `<img src="${imageUrl}" alt="${item.id}" width="50" height="50">` : 'No Image';
-            itemsWithImages.push({ ...item, imageElement });
-        }
+            return { ...item, imageElement };
+        });
+
+        // Wait for all promises to resolve
+        const itemsWithImages = await Promise.all(itemsWithImagesPromises);
 
         // Generate table with image column
         const tableHtml = `
