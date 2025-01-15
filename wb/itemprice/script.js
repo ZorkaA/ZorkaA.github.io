@@ -1,91 +1,74 @@
-document.getElementById('fetchPricesButton').addEventListener('click', () => {
-    const tokenInput = document.getElementById('tokenInput').value.trim();
-    const idInput = document.getElementById('idInput').value.trim();
+document.addEventListener('DOMContentLoaded', () => {
+    // Fetch button and input fields
+    const fetchPricesButton = document.getElementById('fetch-prices');
+    const tokenInput = document.getElementById('user-token');
+    const idsInput = document.getElementById('item-ids');
+    const outputDiv = document.getElementById('output');
+    const downloadButton = document.getElementById('download-csv');
 
-    // Ensure token is provided
-    if (!tokenInput) {
-        alert('Please enter a valid token.');
-        return;
-    }
+    fetchPricesButton.addEventListener('click', async () => {
+        const token = tokenInput.value.trim();
+        const itemIds = idsInput.value.trim();
 
-    // Prepare the API URL
-    const apiUrl = `https://store1.warbrokers.io/301//get_item_list.php?token=${encodeURIComponent(tokenInput)}`;
-    console.log('Fetching data from URL:', apiUrl);
+        // Validate inputs
+        if (!token || !itemIds) {
+            outputDiv.innerHTML = `<p style="color: red;">Please provide both token and item IDs.</p>`;
+            return;
+        }
 
-    fetch(apiUrl)
-        .then(response => {
-            console.log('Response received:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        // Fetch prices
+        try {
+            const response = await fetch(`https://store1.warbrokers.io/301//get_item_list.php?token=${token}`);
+            const data = await response.json();
+
+            // If 'test' is entered, display all items
+            let itemsToShow = [];
+            if (itemIds.toLowerCase() === 'test') {
+                itemsToShow = data.items;
+            } else {
+                const idsArray = itemIds.split(',').map(id => id.trim());
+                itemsToShow = data.items.filter(item => idsArray.includes(item.id));
             }
-            return response.text(); // Get the response as a string
-        })
-        .then(data => {
-            console.log('Raw data received:', data);
 
-            let parsedData;
-            try {
-                parsedData = JSON.parse(data); // Parse the JSON response
-                console.log('Parsed data:', parsedData);
-            } catch (error) {
-                throw new Error('Failed to parse JSON data.');
-            }
-
-            const items = parsedData.items;
-
-            // Process input IDs or fetch all items if 'test' is entered
-            const itemIds = idInput.toLowerCase() === 'test'
-                ? items.map(item => item.id)
-                : idInput.split(',').map(id => id.trim());
-
-            console.log('Filtered item IDs:', itemIds);
-
-            const resultTable = document.getElementById('outputTable');
-            resultTable.innerHTML = ''; // Clear previous results
-
-            // Populate the table with results
-            const filteredItems = items.filter(item => itemIds.includes(item.id));
-            console.log('Filtered items:', filteredItems);
-
-            if (filteredItems.length === 0) {
-                alert('No matching items found.');
+            // Generate table
+            if (itemsToShow.length === 0) {
+                outputDiv.innerHTML = `<p style="color: red;">No items found for the provided IDs.</p>`;
                 return;
             }
 
-            filteredItems.forEach(item => {
-                const row = resultTable.insertRow();
-                row.insertCell(0).textContent = item.id;
-                row.insertCell(1).textContent = Math.round(item.price); // Round price to nearest whole number
-            });
+            const tableHtml = `
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>Item ID</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsToShow.map(item => `<tr><td>${item.id}</td><td>${Math.round(item.price)}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
+            outputDiv.innerHTML = tableHtml;
 
-            document.getElementById('downloadButton').style.display = 'block'; // Show download button
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred: ' + error.message);
-        });
-});
-
-document.getElementById('downloadButton').addEventListener('click', () => {
-    const rows = document.querySelectorAll('#outputTable tr');
-    if (rows.length === 0) {
-        alert('No data to download.');
-        return;
-    }
-
-    let csvContent = 'id,price\n';
-    rows.forEach(row => {
-        const cols = row.querySelectorAll('td');
-        const rowContent = Array.from(cols).map(col => col.textContent).join(',');
-        csvContent += `${rowContent}\n`;
+            // Enable CSV download
+            downloadButton.disabled = false;
+            downloadButton.onclick = () => downloadCSV(itemsToShow);
+        } catch (error) {
+            console.error('Error fetching item prices:', error);
+            outputDiv.innerHTML = `<p style="color: red;">Failed to fetch item prices. Please try again later.</p>`;
+        }
     });
 
-    // Create a Blob and download the CSV file
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'item_prices.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const downloadCSV = (items) => {
+        const csvContent = 'data:text/csv;charset=utf-8,' +
+            ['Item ID,Price', ...items.map(item => `${item.id},${Math.round(item.price)}`)].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'item_prices.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 });
