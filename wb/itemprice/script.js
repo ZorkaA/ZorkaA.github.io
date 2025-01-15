@@ -1,58 +1,81 @@
-document.getElementById('fetch-prices').addEventListener('click', async () => {
-    const userToken = document.getElementById('user-token').value;
-    const itemIds = document.getElementById('item-ids').value;
+document.getElementById('fetchPricesButton').addEventListener('click', () => {
+    const tokenInput = document.getElementById('tokenInput').value.trim();
+    const idInput = document.getElementById('idInput').value.trim();
 
-    // Mock function to simulate API call (replace with your real API logic)
-    async function fetchPrices(token, ids) {
-        return ids.map(id => ({ id, price: Math.round(Math.random() * 1000) }));
+    // Ensure token is provided
+    if (!tokenInput) {
+        alert('Please enter a valid token.');
+        return;
     }
 
-    let itemIdsArray;
-    if (itemIds.trim().toLowerCase() === 'test') {
-        itemIdsArray = Array.from({ length: 100 }, (_, i) => `item_${i + 1}`);
-    } else {
-        itemIdsArray = itemIds.split(',').map(id => id.trim());
-    }
+    // Prepare the API URL
+    const apiUrl = `https://store1.warbrokers.io/301//get_item_list.php?token=${encodeURIComponent(tokenInput)}`;
 
-    try {
-        const prices = await fetchPrices(userToken, itemIdsArray);
-        displayResults(prices);
-        document.getElementById('download-csv').disabled = false;
-    } catch (error) {
-        document.getElementById('output').textContent = 'Error fetching prices.';
-        console.error(error);
-    }
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text(); // Get the response as a string
+        })
+        .then(data => {
+            try {
+                const parsedData = JSON.parse(data); // Parse the JSON response
+                const items = parsedData.items;
+
+                // Process input IDs or fetch all items if 'test' is entered
+                const itemIds = idInput.toLowerCase() === 'test'
+                    ? items.map(item => item.id)
+                    : idInput.split(',').map(id => id.trim());
+
+                const resultTable = document.getElementById('outputTable');
+                resultTable.innerHTML = ''; // Clear previous results
+
+                // Populate the table with results
+                const filteredItems = items.filter(item => itemIds.includes(item.id));
+                if (filteredItems.length === 0) {
+                    alert('No matching items found.');
+                    return;
+                }
+
+                filteredItems.forEach(item => {
+                    const row = resultTable.insertRow();
+                    row.insertCell(0).textContent = item.id;
+                    row.insertCell(1).textContent = Math.round(item.price); // Round price to nearest whole number
+                });
+
+                document.getElementById('downloadButton').style.display = 'block'; // Show download button
+            } catch (error) {
+                console.error('Error processing data:', error);
+                alert('Failed to process data. Please check your input or try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+            alert('Failed to fetch data. Please check the token or try again.');
+        });
 });
 
-function displayResults(data) {
-    const outputDiv = document.getElementById('output');
-    outputDiv.innerHTML = `
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Item ID</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${data.map(item => `<tr><td>${item.id}</td><td>${item.price}</td></tr>`).join('')}
-            </tbody>
-        </table>
-    `;
+document.getElementById('downloadButton').addEventListener('click', () => {
+    const rows = document.querySelectorAll('#outputTable tr');
+    if (rows.length === 0) {
+        alert('No data to download.');
+        return;
+    }
 
-    // Attach data to CSV button
-    document.getElementById('download-csv').onclick = () => downloadCSV(data);
-}
+    let csvContent = 'id,price\n';
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td');
+        const rowContent = Array.from(cols).map(col => col.textContent).join(',');
+        csvContent += `${rowContent}\n`;
+    });
 
-function downloadCSV(data) {
-    const csvContent = 'Item ID,Price\n' + data.map(item => `${item.id},${item.price}`).join('\n');
+    // Create a Blob and download the CSV file
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-
     const a = document.createElement('a');
     a.href = url;
     a.download = 'item_prices.csv';
     a.click();
-
     URL.revokeObjectURL(url);
-}
+});
