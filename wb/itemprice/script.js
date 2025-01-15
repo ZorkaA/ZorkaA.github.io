@@ -92,7 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const outputItems = (items) => {
+    const outputItems = async (items) => {
+        // Await image check for all items before rendering
+        const itemsWithImages = [];
+        
+        for (const item of items) {
+            const imageUrl = getItemImageUrl(item.id);
+            const isValidImage = await checkIfImageExists(imageUrl);
+            const imageElement = isValidImage ? `<img src="${imageUrl}" alt="${item.id}" width="50" height="50">` : 'No Image';
+            itemsWithImages.push({ ...item, imageElement });
+        }
+
         // Generate table with image column
         const tableHtml = `
             <table border="1">
@@ -104,12 +114,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 </thead>
                 <tbody>
-                    ${items.map(async (item) => {
-                        const imageUrl = getItemImageUrl(item.id);
-                        const isValidImage = await checkIfImageExists(imageUrl);
-                        const imageElement = isValidImage ? `<img src="${imageUrl}" alt="${item.id}" width="50" height="50">` : 'No Image';
-                        return `<tr><td>${item.id}</td><td>${Math.round(item.price)}</td><td>${imageElement}</td></tr>`;
-                    }).join('')}
+                    ${itemsWithImages.map(item => `
+                        <tr>
+                            <td>${item.id}</td>
+                            <td>${Math.round(item.price)}</td>
+                            <td>${item.imageElement}</td>
+                        </tr>
+                    `).join('')}
                 </tbody>
             </table>
         `;
@@ -117,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Enable CSV download
         downloadButton.disabled = false;
-        downloadButton.onclick = () => downloadCSV(items);
+        downloadButton.onclick = () => downloadCSV(itemsWithImages);
     };
 
     const downloadCSV = (items) => {
