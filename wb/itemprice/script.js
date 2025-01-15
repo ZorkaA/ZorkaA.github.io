@@ -29,39 +29,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 items.push({ id, price });
             }
 
-            // Filter items by input
-            const idsArray = itemIds.split(',').map(id => id.trim());
-            const itemsToShow = items.filter(item => idsArray.includes(item.id));
+            // If "test" is entered, show all items
+            if (itemIds.toLowerCase() === 'test') {
+                outputItems(items);
+            } else {
+                // Filter items by input
+                const idsArray = itemIds.split(',').map(id => id.trim());
+                const itemsToShow = items.filter(item => idsArray.includes(item.id));
 
-            if (itemsToShow.length === 0) {
-                outputDiv.innerHTML = `<p style="color: red;">No items found for the provided IDs.</p>`;
-                return;
+                if (itemsToShow.length === 0) {
+                    outputDiv.innerHTML = `<p style="color: red;">No items found for the provided IDs.</p>`;
+                    return;
+                }
+
+                // Output filtered items
+                outputItems(itemsToShow);
             }
 
-            // Generate table
-            const tableHtml = `
-                <table border="1">
-                    <thead>
-                        <tr>
-                            <th>Item ID</th>
-                            <th>Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itemsToShow.map(item => `<tr><td>${item.id}</td><td>${Math.round(item.price)}</td></tr>`).join('')}
-                    </tbody>
-                </table>
-            `;
-            outputDiv.innerHTML = tableHtml;
-
-            // Enable CSV download
-            downloadButton.disabled = false;
-            downloadButton.onclick = () => downloadCSV(itemsToShow);
         } catch (error) {
             console.error('Error fetching item prices:', error);
             outputDiv.innerHTML = `<p style="color: red;">Failed to fetch item prices. Please try again later.</p>`;
         }
     });
+
+    const outputItems = (items) => {
+        // Generate table
+        const tableHtml = `
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Item ID</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map(item => `<tr><td>${item.id}</td><td>${Math.round(item.price)}</td></tr>`).join('')}
+                </tbody>
+            </table>
+        `;
+        outputDiv.innerHTML = tableHtml;
+
+        // Enable CSV download
+        downloadButton.disabled = false;
+        downloadButton.onclick = () => downloadCSV(items);
+    };
 
     const downloadCSV = (items) => {
         const csvContent = 'data:text/csv;charset=utf-8,' +
