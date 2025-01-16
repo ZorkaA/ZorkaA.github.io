@@ -38,7 +38,7 @@ const fetchPrices = async () => {
                                 <td>${Math.round(item.price)}</td>
                                 <td>
                                     <img src="${imageUrl}" alt="${item.id}" 
-                                         style="max-width: 50px; max-height: 50px; object-fit: contain;">
+                                         style="max-width: 100px; max-height: 100px; object-fit: contain;">
                                 </td>
                             </tr>`;
                     }).join('')}
