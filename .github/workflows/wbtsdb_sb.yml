@@ -3,7 +3,8 @@ name: wbtsdb supabase
 on:
   schedule:
     - cron: '0 3 * * *'  # Runs daily at 3 AM UTC
-
+  workflow_dispatch:
+  
 jobs:
   process-data:
     runs-on: ubuntu-latest
@@ -23,7 +24,7 @@ jobs:
         pip install requests tqdm supabase
 
     - name: Run data processing script
-      run: python your_script.py  # Replace with the actual name of your script
+      run: python ./wbtsdb_sb.py
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
