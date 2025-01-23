@@ -5,8 +5,8 @@ from tqdm import tqdm
 from supabase import create_client, Client
 
 # Supabase configuration
-supabase_url = 'https://vviprqpyqkwjdtqqlmde.supabase.co'
-supabase_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aXBycXB5cWt3amR0cXFsbWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAxMDUxNzMsImV4cCI6MjA0NTY4MTE3M30.ftmjdgdJPjOox5SpxDNoQ3kJX0vfbhRoEHharLcI4eM'
+supabase_url = os.getenv('SUPABASE_URL')
+supabase_key = os.getenv('SUPABASE_KEY')
 supabase: Client = create_client(supabase_url, supabase_key)
 
 # Directory and file paths
