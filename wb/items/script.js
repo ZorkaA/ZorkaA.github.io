@@ -75,7 +75,7 @@ const downloadCSV = (items) => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "item_prices.csv");
+    link.setAttribute("download", "items.csv");
     document.body.appendChild(link); // Required for Firefox
     link.click();
     document.body.removeChild(link);
