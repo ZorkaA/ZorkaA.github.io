@@ -1,4 +1,4 @@
-const fetchPrices = async () => {
+const fetchPrices = async (missingOnly = false) => {
     const idsInput = document.getElementById("item-ids").value.trim();
     const outputDiv = document.getElementById("output");
     const downloadButton = document.getElementById("download-csv");
@@ -16,8 +16,12 @@ const fetchPrices = async () => {
             return acc;
         }, []);
 
-        // Filter items based on input or show all
-        const filteredItems = ids.length === 0 ? itemsArray : itemsArray.filter(item => ids.includes(item.id));
+        // Determine which items to display
+        const filteredItems = missingOnly
+            ? itemsArray.filter(item => !ids.includes(item.id)) // Items not in the user's list
+            : ids.length === 0
+            ? itemsArray // Show all items if no IDs are provided
+            : itemsArray.filter(item => ids.includes(item.id)); // Items in the user's list
 
         // Generate table with images
         const tableHtml = `
@@ -114,5 +118,6 @@ const handleTokenSubmission = async () => {
 };
 
 // Attach event listeners
-document.getElementById("fetch-prices").addEventListener("click", fetchPrices);
+document.getElementById("fetch-prices").addEventListener("click", () => fetchPrices(false));
+document.getElementById("fetch-missing-items").addEventListener("click", () => fetchPrices(true));
 document.getElementById("paste-items").addEventListener("click", handleTokenSubmission);
