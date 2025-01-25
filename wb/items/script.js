@@ -57,16 +57,9 @@ const fetchPrices = async () => {
 
 // Get image URL based on item ID
 const getItemImageUrl = (id) => {
-    if (id.startsWith("f")) return `https://stats.warbrokers.io/images/cosmetics/flags/${id}.png`;
-    if (id.startsWith("d")) return `https://stats.warbrokers.io/images/cosmetics/decals/${id}.png`;
-    if (id.startsWith("h")) return `https://stats.warbrokers.io/images/cosmetics/heads/${id}.png`;
-    if (/^v\d{2}i\d{3}$/.test(id)) return `https://stats.warbrokers.io/images/cosmetics/items/${id}.png`;
-    if (/^v[12|4|5]c\d{3}$/.test(id)) return `https://camo.warbrokers.io/store/vehicles/${id}.jpg`;
-    if (/^w\d{2}c\d{3}$/.test(id)) return `https://camo.warbrokers.io/store/items/${id}.jpg`; // For wxxc___ items
-    if (/^v30c\d{3}$/.test(id)) return `https://stats.warbrokers.io/images/cosmetics/vehicles/${id}.png`; // For v30c___ items
-    return ""; // No image URL for other cases
+    // All icons are now located in /data/icons/<itemname>.png
+    return `/data/icons/${id}.png`;
 };
-
 
 // Download CSV
 const downloadCSV = (items) => {
