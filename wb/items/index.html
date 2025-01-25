@@ -5,10 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Item Browser</title>
     <script src="script.js" defer></script>
+    <style>
+        .error-message {
+            color: red;
+            margin-top: 5px;
+        }
+    </style>
 </head>
 <body>
     <h1>Item Browser</h1>
 
+    <!-- Token Input Section -->
+    <label for="token-input">Token:</label>
+    <input type="text" id="token-input" placeholder="Enter your token">
+    <button id="paste-items">Paste My Items</button>
+    <div id="token-error" class="error-message"></div>
+
+    <br><br>
+
+    <!-- Existing Search Box -->
     <label for="item-ids">Item IDs (comma-separated):</label><br>
     <textarea id="item-ids" rows="5" style="width: 100%; resize: both;"></textarea><br><br>
     <button id="fetch-prices">Fetch Items</button>
