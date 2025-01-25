@@ -51,14 +51,26 @@ const fetchPrices = async () => {
         downloadButton.disabled = false;
         downloadButton.onclick = () => downloadCSV(filteredItems);
     } catch (error) {
+        console.error("Error fetching item prices:", error);
         outputDiv.textContent = `Error fetching item prices: ${error}`;
     }
 };
 
 // Get image URL based on item ID
 const getItemImageUrl = (id) => {
-    // All icons are now located in /data/icons/<itemname>.png
-    return `/data/icons/${id}.png`;
+    const basePath = "/data/icons/";
+    if (id.startsWith("f")) return `${basePath}flags/${id}.png`;
+    if (id.startsWith("d")) return `${basePath}decals/${id}.png`;
+    if (id.startsWith("h")) return `${basePath}heads/${id}.png`;
+    if (id.startsWith("t")) return `${basePath}emotes/${id}.png`;
+    if (/^v30c\d{3}$/.test(id)) return `${basePath}p_camo/${id}.png`;
+    if (/^v30i\d{3}$/.test(id)) return `${basePath}p_items/${id}.png`;
+    if (/^wxxc\d{3}$/.test(id)) return `${basePath}skins/${id}.png`;
+    if (/^v\d{2}c\d{3}$/.test(id)) return `${basePath}vehicles/${id}.png`;
+    if (/^w\d{2}$/.test(id)) return `${basePath}weapons/${id}.png`;
+
+    console.log(`Unknown item ID or missing folder for ID: ${id}`);
+    return ""; // Return placeholder or empty if unknown
 };
 
 // Download CSV
@@ -76,3 +88,4 @@ const downloadCSV = (items) => {
 
 // Attach event listener to the button
 document.getElementById("fetch-prices").addEventListener("click", fetchPrices);
+
