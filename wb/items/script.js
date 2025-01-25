@@ -51,7 +51,6 @@ const fetchPrices = async () => {
         downloadButton.disabled = false;
         downloadButton.onclick = () => downloadCSV(filteredItems);
     } catch (error) {
-        console.error("Error fetching item prices:", error);
         outputDiv.textContent = `Error fetching item prices: ${error}`;
     }
 };
@@ -63,14 +62,12 @@ const getItemImageUrl = (id) => {
     if (id.startsWith("d")) return `${basePath}decals/${id}.png`;
     if (id.startsWith("h")) return `${basePath}heads/${id}.png`;
     if (id.startsWith("t")) return `${basePath}emotes/${id}.png`;
-    if (/^v30c\d{3}$/.test(id)) return `${basePath}p_camo/${id}.png`;
-    if (/^v30i\d{3}$/.test(id)) return `${basePath}p_items/${id}.png`;
-    if (/^wxxc\d{3}$/.test(id)) return `${basePath}skins/${id}.png`;
+    if (/^v\d{2}i\d{3}$/.test(id)) return `${basePath}p_items/${id}.png`;
     if (/^v\d{2}c\d{3}$/.test(id)) return `${basePath}vehicles/${id}.png`;
-    if (/^w\d{2}$/.test(id)) return `${basePath}weapons/${id}.png`;
-
-    console.log(`Unknown item ID or missing folder for ID: ${id}`);
-    return ""; // Return placeholder or empty if unknown
+    if (/^v30c\d{3}$/.test(id)) return `${basePath}p_camo/${id}.png`;
+    if (/^w\d{2}c\d{3}$/.test(id)) return `${basePath}skins/${id}.png`;
+    if (/^w\d+$/.test(id)) return `${basePath}weapons/${id}.png`;
+    return "/data/icons/placeholder.png"; // Placeholder image for unknown items
 };
 
 // Download CSV
@@ -86,6 +83,36 @@ const downloadCSV = (items) => {
     document.body.removeChild(link);
 };
 
-// Attach event listener to the button
-document.getElementById("fetch-prices").addEventListener("click", fetchPrices);
+// Handle token submission
+const handleTokenSubmission = async () => {
+    const tokenInput = document.getElementById("token-input");
+    const errorDiv = document.getElementById("token-error");
+    const itemIdsBox = document.getElementById("item-ids");
 
+    const token = tokenInput.value.trim();
+    if (!token) {
+        errorDiv.textContent = "Please enter a token.";
+        return;
+    }
+
+    try {
+        const response = await fetch(`https://store1.warbrokers.io/301//get_items.php?token=${token}`);
+        const data = await response.text();
+
+        if (data === "Error! Bad token") {
+            errorDiv.textContent = "Invalid token. Please try again.";
+        } else {
+            errorDiv.textContent = ""; // Clear error
+            const existingIds = itemIdsBox.value.trim();
+            itemIdsBox.value = existingIds
+                ? `${existingIds},${data}`
+                : data; // Append or overwrite
+        }
+    } catch (error) {
+        errorDiv.textContent = `Error fetching items: ${error}`;
+    }
+};
+
+// Attach event listeners
+document.getElementById("fetch-prices").addEventListener("click", fetchPrices);
+document.getElementById("paste-items").addEventListener("click", handleTokenSubmission);
