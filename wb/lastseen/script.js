@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const lastSeenTable = document.getElementById("lastSeenTable").querySelector("tbody");
   const downloadCSVButton = document.getElementById("downloadCSV");
 
+  let playerData = [];
+
   // Fetch Squad Members
   fetchDataButton.addEventListener("click", async () => {
     const squadName = squadInput.value.trim();
@@ -17,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     errorMessage.textContent = "";
     tableSection.style.display = "none";
     lastSeenTable.innerHTML = "";
+    playerData = []; // Clear previous data
 
     try {
       // Step 1: Fetch squad members
@@ -40,28 +43,33 @@ document.addEventListener("DOMContentLoaded", () => {
           })
       );
 
-      const playerData = await Promise.all(playerPromises);
+      playerData = await Promise.all(playerPromises);
 
-      playerData.forEach(player => {
-        const row = document.createElement("tr");
-        const lastSeenGMT = new Date(player.time * 1000).toGMTString();
-        const timeAgo = getRelativeTime(currentTime - player.time);
-
-        row.innerHTML = `
-          <td>${player.nick}</td>
-          <td>${player.uid}</td>
-          <td>${lastSeenGMT}</td>
-          <td>${timeAgo}</td>
-        `;
-        lastSeenTable.appendChild(row);
-      });
-
+      renderTable(playerData, currentTime);
       tableSection.style.display = "block";
     } catch (error) {
       console.error(error);
       errorMessage.textContent = "An error occurred while fetching data. Please try again.";
     }
   });
+
+  // Render the table
+  function renderTable(data, currentTime) {
+    lastSeenTable.innerHTML = "";
+    data.forEach(player => {
+      const lastSeenGMT = new Date(player.time * 1000).toGMTString();
+      const timeAgo = getRelativeTime(currentTime - player.time);
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${player.nick}</td>
+        <td>${player.uid}</td>
+        <td data-date="${player.time}">${lastSeenGMT}</td>
+        <td>${timeAgo}</td>
+      `;
+      lastSeenTable.appendChild(row);
+    });
+  }
 
   // Convert time difference to relative format
   function getRelativeTime(seconds) {
@@ -73,6 +81,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const days = Math.floor(hours / 24);
     return `${days} days ago`;
   }
+
+  // Sort table column by date
+  document.querySelector("th[data-sort='date']").addEventListener("click", () => {
+    const sorted = [...playerData].sort((a, b) => b.time - a.time); // Sort descending by default
+    renderTable(sorted, Math.floor(Date.now() / 1000));
+  });
 
   // Download table as CSV
   downloadCSVButton.addEventListener("click", () => {
