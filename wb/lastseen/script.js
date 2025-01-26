@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadCSVButton = document.getElementById("downloadCSV");
 
   let playerData = [];
+  let currentSortColumn = null;
+  let currentSortOrder = "asc"; // Default sort order is ascending
 
   // Fetch Squad Members
   fetchDataButton.addEventListener("click", async () => {
@@ -65,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${player.nick}</td>
         <td>${player.uid}</td>
         <td data-date="${player.time}">${lastSeenGMT}</td>
-        <td>${timeAgo}</td>
+        <td data-relative="${currentTime - player.time}">${timeAgo}</td>
       `;
       lastSeenTable.appendChild(row);
     });
@@ -82,10 +84,34 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${days} days ago`;
   }
 
-  // Sort table column by date
-  document.querySelector("th[data-sort='date']").addEventListener("click", () => {
-    const sorted = [...playerData].sort((a, b) => b.time - a.time); // Sort descending by default
-    renderTable(sorted, Math.floor(Date.now() / 1000));
+  // Sorting logic
+  const tableHeaders = document.querySelectorAll("#lastSeenTable th");
+  tableHeaders.forEach((header, index) => {
+    header.addEventListener("click", () => {
+      const sortKey = header.textContent.trim();
+      const columnKey = ["nick", "uid", "time", "relative"][index];
+      currentSortOrder = currentSortColumn === columnKey && currentSortOrder === "asc" ? "desc" : "asc";
+      currentSortColumn = columnKey;
+
+      let sortedData;
+      if (columnKey === "time" || columnKey === "relative") {
+        // Numeric sorting for date/relative time
+        sortedData = [...playerData].sort((a, b) => {
+          const valA = columnKey === "time" ? a.time : currentTime - a.time;
+          const valB = columnKey === "time" ? b.time : currentTime - b.time;
+          return currentSortOrder === "asc" ? valA - valB : valB - valA;
+        });
+      } else {
+        // String/UID sorting
+        sortedData = [...playerData].sort((a, b) => {
+          const valA = columnKey === "nick" ? a.nick.toLowerCase() : a.uid.toLowerCase();
+          const valB = columnKey === "nick" ? b.nick.toLowerCase() : b.uid.toLowerCase();
+          return currentSortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+      }
+
+      renderTable(sortedData, currentTime);
+    });
   });
 
   // Download table as CSV
