@@ -6,9 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const lastSeenTable = document.getElementById("lastSeenTable").querySelector("tbody");
   const downloadCSVButton = document.getElementById("downloadCSV");
 
-  let tableData = []; // To store fetched and sorted data
-  let currentSort = { column: null, order: null }; // Track sorting state
-
   // Fetch Squad Members
   fetchDataButton.addEventListener("click", async () => {
     const squadName = squadInput.value.trim();
@@ -20,9 +17,9 @@ document.addEventListener("DOMContentLoaded", () => {
     errorMessage.textContent = "";
     tableSection.style.display = "none";
     lastSeenTable.innerHTML = "";
-    tableData = []; // Clear previous data
 
     try {
+      // Step 1: Fetch squad members
       const squadResponse = await fetch(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${encodeURIComponent(squadName)}`);
       if (!squadResponse.ok) throw new Error("Failed to fetch squad members.");
       const squadData = await squadResponse.json();
@@ -32,8 +29,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const currentTime = Math.floor(Date.now() / 1000);
+      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
 
+      // Step 2: Fetch each player's data and build the table
       const playerPromises = squadData.map(member =>
         fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${encodeURIComponent(member.uid)}`)
           .then(res => {
@@ -44,62 +42,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const playerData = await Promise.all(playerPromises);
 
-      tableData = playerData.map(player => ({
-        nick: player.nick,
-        uid: player.uid,
-        time: player.time,
-        lastSeenGMT: new Date(player.time * 1000).toGMTString(),
-        timeAgo: currentTime - player.time,
-      }));
+      playerData.forEach(player => {
+        const row = document.createElement("tr");
+        const lastSeenGMT = new Date(player.time * 1000).toGMTString();
+        const timeAgo = getRelativeTime(currentTime - player.time);
 
-      renderTable(tableData);
+        row.innerHTML = `
+          <td>${player.nick}</td>
+          <td>${player.uid}</td>
+          <td>${lastSeenGMT}</td>
+          <td>${timeAgo}</td>
+        `;
+        lastSeenTable.appendChild(row);
+      });
+
       tableSection.style.display = "block";
     } catch (error) {
       console.error(error);
       errorMessage.textContent = "An error occurred while fetching data. Please try again.";
     }
   });
-
-  // Render Table Data
-  function renderTable(data) {
-    lastSeenTable.innerHTML = "";
-    data.forEach(row => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.nick}</td>
-        <td>${row.uid}</td>
-        <td>${row.lastSeenGMT}</td>
-        <td>${getRelativeTime(row.timeAgo)}</td>
-      `;
-      lastSeenTable.appendChild(tr);
-    });
-  }
-
-  // Sort Table Data
-  document.querySelectorAll("#lastSeenTable thead th").forEach(th => {
-    th.addEventListener("click", () => {
-      const column = th.dataset.sort;
-      const isAscending = currentSort.column === column ? !currentSort.order : true;
-      currentSort = { column, order: isAscending };
-
-      tableData.sort((a, b) => {
-        if (column === "time" || column === "relative") {
-          return isAscending ? a[column] - b[column] : b[column] - a[column];
-        } else {
-          return isAscending ? a[column].localeCompare(b[column]) : b[column].localeCompare(a[column]);
-        }
-      });
-
-      renderTable(tableData);
-      updateSortIcons(th, isAscending);
-    });
-  });
-
-  // Update Sort Icons
-  function updateSortIcons(th, isAscending) {
-    document.querySelectorAll(".sort-icon").forEach(icon => (icon.textContent = "⬍"));
-    th.querySelector(".sort-icon").textContent = isAscending ? "⬆" : "⬇";
-  }
 
   // Convert time difference to relative format
   function getRelativeTime(seconds) {
@@ -112,11 +74,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${days} days ago`;
   }
 
-  // Download Table as CSV
+  // Download table as CSV
   downloadCSVButton.addEventListener("click", () => {
     const rows = [["Nickname", "UID", "Last Seen (GMT)", "Time Ago"]];
-    tableData.forEach(row => {
-      rows.push([row.nick, row.uid, row.lastSeenGMT, getRelativeTime(row.timeAgo)]);
+    Array.from(lastSeenTable.querySelectorAll("tr")).forEach(row => {
+      const cells = Array.from(row.querySelectorAll("td")).map(cell => cell.textContent);
+      rows.push(cells);
     });
 
     const csvContent = rows.map(row => row.join(",")).join("\n");
