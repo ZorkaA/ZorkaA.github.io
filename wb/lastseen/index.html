@@ -6,6 +6,87 @@
   <title>Squad Last Seen</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="script.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    header {
+      background-color: #4CAF50;
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+    }
+    main {
+      margin: 20px;
+    }
+    #input-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #input-section label {
+      font-weight: bold;
+    }
+    #input-section input {
+      padding: 8px;
+      margin-left: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    #input-section button {
+      padding: 8px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #input-section button:hover {
+      background-color: #45a049;
+    }
+    #errorMessage {
+      color: red;
+      font-size: 0.9rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+    }
+    table th, table td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    table th {
+      background-color: #f2f2f2;
+      cursor: pointer;
+    }
+    table th.sortable:hover {
+      background-color: #ddd;
+    }
+    table tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    table tbody tr:hover {
+      background-color: #f1f1f1;
+    }
+    #downloadCSV {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #downloadCSV:hover {
+      background-color: #45a049;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -16,23 +97,22 @@
       <label for="squadName">Enter Squad Name:</label>
       <input type="text" id="squadName" placeholder="Enter squad name here" />
       <button id="fetchData">Fetch Data</button>
-      <div id="errorMessage" style="color: red; margin-top: 10px;"></div>
+      <div id="errorMessage"></div>
     </section>
-    <section id="table-section" style="margin-top: 20px; display: none;">
+    <section id="table-section" style="display: none;">
       <h2>Last Seen Players</h2>
       <table id="lastSeenTable">
         <thead>
           <tr>
             <th>Nickname</th>
             <th>UID</th>
-            <th>Last Seen (GMT)</th>
+            <th class="sortable" data-sort="date">Last Seen (GMT)</th>
             <th>Time Ago</th>
           </tr>
         </thead>
-        <tbody>
-        </tbody>
+        <tbody></tbody>
       </table>
-      <button id="downloadCSV" style="margin-top: 10px;">Download CSV</button>
+      <button id="downloadCSV">Download CSV</button>
     </section>
   </main>
 </body>
