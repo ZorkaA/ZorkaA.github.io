@@ -4,82 +4,50 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Squad Last Seen</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    input, button {
-      margin: 5px 0;
-      padding: 8px;
-      font-size: 1rem;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-
     th {
-      background-color: #f4f4f4;
       cursor: pointer;
+      user-select: none;
     }
-
-    th.sortable:hover {
-      background-color: #ddd;
-    }
-
-    th .arrow {
+    th .sort-icon {
       margin-left: 5px;
       font-size: 0.9em;
+      visibility: hidden;
     }
-
-    th.active {
-      font-weight: bold;
-    }
-
-    #error-message {
-      color: red;
-    }
-
-    .hidden {
-      display: none;
+    th:hover .sort-icon {
+      visibility: visible;
     }
   </style>
 </head>
 <body>
-  <h1>Squad Last Seen</h1>
-  <div>
-    <label for="squad-name">Squad Name:</label>
-    <input type="text" id="squad-name" placeholder="Enter squad name">
-    <button id="fetch-data">Fetch Squad Data</button>
-  </div>
-  <p id="error-message" class="hidden"></p>
-  <table id="result-table" class="hidden">
-    <thead>
-      <tr>
-        <th class="sortable" data-column="nick">Nickname <span class="arrow"></span></th>
-        <th class="sortable" data-column="uid">UID <span class="arrow"></span></th>
-        <th class="sortable" data-column="time">Last Seen Date (GMT) <span class="arrow"></span></th>
-        <th class="sortable" data-column="relativeTime">Relative Time <span class="arrow"></span></th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <button id="download-csv" class="hidden">Download CSV</button>
-
-  <script src="script.js"></script>
+  <header>
+    <h1>Squad Last Seen Tracker</h1>
+  </header>
+  <main>
+    <section id="input-section">
+      <label for="squadName">Enter Squad Name:</label>
+      <input type="text" id="squadName" placeholder="Enter squad name here" />
+      <button id="fetchData">Fetch Data</button>
+      <div id="errorMessage" style="color: red; margin-top: 10px;"></div>
+    </section>
+    <section id="table-section" style="margin-top: 20px; display: none;">
+      <h2>Last Seen Players</h2>
+      <table id="lastSeenTable">
+        <thead>
+          <tr>
+            <th data-sort="nick">Nickname<span class="sort-icon">⬍</span></th>
+            <th data-sort="uid">UID<span class="sort-icon">⬍</span></th>
+            <th data-sort="time">Last Seen (GMT)<span class="sort-icon">⬍</span></th>
+            <th data-sort="relative">Time Ago<span class="sort-icon">⬍</span></th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+      <button id="downloadCSV" style="margin-top: 10px;">Download CSV</button>
+    </section>
+  </main>
 </body>
 </html>
