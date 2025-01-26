@@ -5,9 +5,11 @@ document.getElementById("fetch-data").addEventListener("click", async () => {
   const tableBody = table.querySelector("tbody");
   const downloadButton = document.getElementById("download-csv");
 
+  // Clear any previous errors or table content
   errorMessage.classList.add("hidden");
   table.classList.add("hidden");
   downloadButton.classList.add("hidden");
+  tableBody.innerHTML = "";
 
   if (!squadName) {
     errorMessage.textContent = "Please enter a squad name.";
@@ -16,8 +18,10 @@ document.getElementById("fetch-data").addEventListener("click", async () => {
   }
 
   try {
+    console.log(`Fetching members for squad: ${squadName}`);
     const response = await fetch(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${squadName}`);
     const members = await response.json();
+    console.log("Squad Members Response:", members);
 
     if (!members || members.length === 0) {
       throw new Error("No members found for the specified squad.");
@@ -25,8 +29,11 @@ document.getElementById("fetch-data").addEventListener("click", async () => {
 
     const data = await Promise.all(
       members.map(async (member) => {
+        console.log(`Fetching data for member UID: ${member.uid}`);
         const playerResponse = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${member.uid}`);
         const playerData = await playerResponse.json();
+        console.log("Player Data:", playerData);
+
         return {
           nick: member.nick,
           uid: member.uid,
@@ -36,10 +43,12 @@ document.getElementById("fetch-data").addEventListener("click", async () => {
       })
     );
 
+    console.log("Final Data:", data);
     populateTable(data);
     table.classList.remove("hidden");
     downloadButton.classList.remove("hidden");
   } catch (error) {
+    console.error("Error:", error);
     errorMessage.textContent = error.message;
     errorMessage.classList.remove("hidden");
   }
@@ -63,41 +72,6 @@ function populateTable(data) {
   makeTableSortable(data);
 }
 
-function makeTableSortable(data) {
-  const headers = document.querySelectorAll("th.sortable");
-  let sortState = {};
-
-  headers.forEach((header) => {
-    const column = header.getAttribute("data-column");
-
-    header.addEventListener("click", () => {
-      const isAsc = sortState[column] === "asc";
-      sortState = { [column]: isAsc ? "desc" : "asc" };
-
-      const sortedData = data.slice().sort((a, b) => {
-        if (column === "time") {
-          return isAsc ? a.time - b.time : b.time - a.time;
-        } else if (column === "relativeTime") {
-          return isAsc
-            ? parseRelativeTime(a.relativeTime) - parseRelativeTime(b.relativeTime)
-            : parseRelativeTime(b.relativeTime) - parseRelativeTime(a.relativeTime);
-        }
-        return isAsc ? a[column].localeCompare(b[column]) : b[column].localeCompare(a[column]);
-      });
-
-      populateTable(sortedData);
-
-      headers.forEach((h) => {
-        h.classList.remove("active");
-        h.querySelector(".arrow").textContent = "";
-      });
-
-      header.classList.add("active");
-      header.querySelector(".arrow").textContent = isAsc ? "▲" : "▼";
-    });
-  });
-}
-
 function timeSince(date) {
   const seconds = Math.floor((new Date() - date) / 1000);
   const intervals = [
@@ -117,29 +91,3 @@ function timeSince(date) {
   }
   return "just now";
 }
-
-function parseRelativeTime(relativeTime) {
-  const [value, unit] = relativeTime.split(" ");
-  const seconds = {
-    second: 1,
-    minute: 60,
-    hour: 3600,
-    day: 86400,
-    month: 2592000,
-    year: 31536000
-  };
-  return parseInt(value) * seconds[unit.replace(/s$/, "")];
-}
-
-document.getElementById("download-csv").addEventListener("click", () => {
-  const rows = Array.from(document.querySelectorAll("#result-table tr"));
-  const csvContent = rows
-    .map((row) => Array.from(row.querySelectorAll("td, th")).map((cell) => `"${cell.textContent}"`).join(","))
-    .join("\n");
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "squad_last_seen.csv";
-  link.click();
-});
