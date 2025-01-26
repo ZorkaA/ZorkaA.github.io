@@ -6,20 +6,6 @@
   <title>Squad Last Seen</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="script.js"></script>
-  <style>
-    th {
-      cursor: pointer;
-      user-select: none;
-    }
-    th .sort-icon {
-      margin-left: 5px;
-      font-size: 0.9em;
-      visibility: hidden;
-    }
-    th:hover .sort-icon {
-      visibility: visible;
-    }
-  </style>
 </head>
 <body>
   <header>
@@ -37,10 +23,10 @@
       <table id="lastSeenTable">
         <thead>
           <tr>
-            <th data-sort="nick">Nickname<span class="sort-icon">⬍</span></th>
-            <th data-sort="uid">UID<span class="sort-icon">⬍</span></th>
-            <th data-sort="time">Last Seen (GMT)<span class="sort-icon">⬍</span></th>
-            <th data-sort="relative">Time Ago<span class="sort-icon">⬍</span></th>
+            <th>Nickname</th>
+            <th>UID</th>
+            <th>Last Seen (GMT)</th>
+            <th>Time Ago</th>
           </tr>
         </thead>
         <tbody>
