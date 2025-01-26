@@ -1,134 +1,145 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const squadInput = document.getElementById("squadName");
-  const fetchDataButton = document.getElementById("fetchData");
-  const errorMessage = document.getElementById("errorMessage");
-  const tableSection = document.getElementById("table-section");
-  const lastSeenTable = document.getElementById("lastSeenTable").querySelector("tbody");
-  const downloadCSVButton = document.getElementById("downloadCSV");
+document.getElementById("fetch-data").addEventListener("click", async () => {
+  const squadName = document.getElementById("squad-name").value.trim();
+  const errorMessage = document.getElementById("error-message");
+  const table = document.getElementById("result-table");
+  const tableBody = table.querySelector("tbody");
+  const downloadButton = document.getElementById("download-csv");
 
-  let playerData = [];
-  let currentSortColumn = null;
-  let currentSortOrder = "asc"; // Default sort order is ascending
+  errorMessage.classList.add("hidden");
+  table.classList.add("hidden");
+  downloadButton.classList.add("hidden");
 
-  // Fetch Squad Members
-  fetchDataButton.addEventListener("click", async () => {
-    const squadName = squadInput.value.trim();
-    if (!squadName) {
-      errorMessage.textContent = "Please enter a squad name.";
-      return;
+  if (!squadName) {
+    errorMessage.textContent = "Please enter a squad name.";
+    errorMessage.classList.remove("hidden");
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${squadName}`);
+    const members = await response.json();
+
+    if (!members || members.length === 0) {
+      throw new Error("No members found for the specified squad.");
     }
 
-    errorMessage.textContent = "";
-    tableSection.style.display = "none";
-    lastSeenTable.innerHTML = "";
-    playerData = []; // Clear previous data
+    const data = await Promise.all(
+      members.map(async (member) => {
+        const playerResponse = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${member.uid}`);
+        const playerData = await playerResponse.json();
+        return {
+          nick: member.nick,
+          uid: member.uid,
+          time: new Date(playerData.time * 1000),
+          relativeTime: timeSince(new Date(playerData.time * 1000))
+        };
+      })
+    );
 
-    try {
-      // Step 1: Fetch squad members
-      const squadResponse = await fetch(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${encodeURIComponent(squadName)}`);
-      if (!squadResponse.ok) throw new Error("Failed to fetch squad members.");
-      const squadData = await squadResponse.json();
+    populateTable(data);
+    table.classList.remove("hidden");
+    downloadButton.classList.remove("hidden");
+  } catch (error) {
+    errorMessage.textContent = error.message;
+    errorMessage.classList.remove("hidden");
+  }
+});
 
-      if (!Array.isArray(squadData) || squadData.length === 0) {
-        errorMessage.textContent = "No members found for the given squad.";
-        return;
-      }
+function populateTable(data) {
+  const tableBody = document.querySelector("#result-table tbody");
+  tableBody.innerHTML = "";
 
-      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
-
-      // Step 2: Fetch each player's data and build the table
-      const playerPromises = squadData.map(member =>
-        fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${encodeURIComponent(member.uid)}`)
-          .then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch data for UID: ${member.uid}`);
-            return res.json();
-          })
-      );
-
-      playerData = await Promise.all(playerPromises);
-
-      renderTable(playerData, currentTime);
-      tableSection.style.display = "block";
-    } catch (error) {
-      console.error(error);
-      errorMessage.textContent = "An error occurred while fetching data. Please try again.";
-    }
+  data.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.nick}</td>
+      <td>${row.uid}</td>
+      <td>${row.time.toUTCString()}</td>
+      <td>${row.relativeTime}</td>
+    `;
+    tableBody.appendChild(tr);
   });
 
-  // Render the table
-  function renderTable(data, currentTime) {
-    lastSeenTable.innerHTML = "";
-    data.forEach(player => {
-      const lastSeenGMT = new Date(player.time * 1000).toGMTString();
-      const timeAgo = getRelativeTime(currentTime - player.time);
+  makeTableSortable(data);
+}
 
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${player.nick}</td>
-        <td>${player.uid}</td>
-        <td data-date="${player.time}">${lastSeenGMT}</td>
-        <td data-relative="${currentTime - player.time}">${timeAgo}</td>
-      `;
-      lastSeenTable.appendChild(row);
-    });
-  }
+function makeTableSortable(data) {
+  const headers = document.querySelectorAll("th.sortable");
+  let sortState = {};
 
-  // Convert time difference to relative format
-  function getRelativeTime(seconds) {
-    if (seconds < 60) return `${seconds} seconds ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} minutes ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hours ago`;
-    const days = Math.floor(hours / 24);
-    return `${days} days ago`;
-  }
+  headers.forEach((header) => {
+    const column = header.getAttribute("data-column");
 
-  // Sorting logic
-  const tableHeaders = document.querySelectorAll("#lastSeenTable th");
-  tableHeaders.forEach((header, index) => {
     header.addEventListener("click", () => {
-      const sortKey = header.textContent.trim();
-      const columnKey = ["nick", "uid", "time", "relative"][index];
-      currentSortOrder = currentSortColumn === columnKey && currentSortOrder === "asc" ? "desc" : "asc";
-      currentSortColumn = columnKey;
+      const isAsc = sortState[column] === "asc";
+      sortState = { [column]: isAsc ? "desc" : "asc" };
 
-      let sortedData;
-      if (columnKey === "time" || columnKey === "relative") {
-        // Numeric sorting for date/relative time
-        sortedData = [...playerData].sort((a, b) => {
-          const valA = columnKey === "time" ? a.time : currentTime - a.time;
-          const valB = columnKey === "time" ? b.time : currentTime - b.time;
-          return currentSortOrder === "asc" ? valA - valB : valB - valA;
-        });
-      } else {
-        // String/UID sorting
-        sortedData = [...playerData].sort((a, b) => {
-          const valA = columnKey === "nick" ? a.nick.toLowerCase() : a.uid.toLowerCase();
-          const valB = columnKey === "nick" ? b.nick.toLowerCase() : b.uid.toLowerCase();
-          return currentSortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        });
-      }
+      const sortedData = data.slice().sort((a, b) => {
+        if (column === "time") {
+          return isAsc ? a.time - b.time : b.time - a.time;
+        } else if (column === "relativeTime") {
+          return isAsc
+            ? parseRelativeTime(a.relativeTime) - parseRelativeTime(b.relativeTime)
+            : parseRelativeTime(b.relativeTime) - parseRelativeTime(a.relativeTime);
+        }
+        return isAsc ? a[column].localeCompare(b[column]) : b[column].localeCompare(a[column]);
+      });
 
-      renderTable(sortedData, currentTime);
+      populateTable(sortedData);
+
+      headers.forEach((h) => {
+        h.classList.remove("active");
+        h.querySelector(".arrow").textContent = "";
+      });
+
+      header.classList.add("active");
+      header.querySelector(".arrow").textContent = isAsc ? "▲" : "▼";
     });
   });
+}
 
-  // Download table as CSV
-  downloadCSVButton.addEventListener("click", () => {
-    const rows = [["Nickname", "UID", "Last Seen (GMT)", "Time Ago"]];
-    Array.from(lastSeenTable.querySelectorAll("tr")).forEach(row => {
-      const cells = Array.from(row.querySelectorAll("td")).map(cell => cell.textContent);
-      rows.push(cells);
-    });
+function timeSince(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  const intervals = [
+    { label: "year", seconds: 31536000 },
+    { label: "month", seconds: 2592000 },
+    { label: "day", seconds: 86400 },
+    { label: "hour", seconds: 3600 },
+    { label: "minute", seconds: 60 },
+    { label: "second", seconds: 1 }
+  ];
 
-    const csvContent = rows.map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${squadInput.value.trim()}_last_seen.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+  for (const interval of intervals) {
+    const count = Math.floor(seconds / interval.seconds);
+    if (count > 0) {
+      return `${count} ${interval.label}${count !== 1 ? "s" : ""} ago`;
+    }
+  }
+  return "just now";
+}
+
+function parseRelativeTime(relativeTime) {
+  const [value, unit] = relativeTime.split(" ");
+  const seconds = {
+    second: 1,
+    minute: 60,
+    hour: 3600,
+    day: 86400,
+    month: 2592000,
+    year: 31536000
+  };
+  return parseInt(value) * seconds[unit.replace(/s$/, "")];
+}
+
+document.getElementById("download-csv").addEventListener("click", () => {
+  const rows = Array.from(document.querySelectorAll("#result-table tr"));
+  const csvContent = rows
+    .map((row) => Array.from(row.querySelectorAll("td, th")).map((cell) => `"${cell.textContent}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "squad_last_seen.csv";
+  link.click();
 });
