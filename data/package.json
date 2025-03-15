@@ -1,0 +1,11 @@
+{
+  "name": "github-pages-supabase",
+  "version": "1.0.0",
+  "scripts": {
+    "fetch": "node scripts/fetch_data.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "axios": "^1.6.0"
+  }
+}
