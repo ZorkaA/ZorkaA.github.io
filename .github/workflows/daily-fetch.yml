@@ -1,0 +1,35 @@
+name: Supabase Daily
+
+on:
+  schedule:
+    - cron: '1 12 * * *' # Runs at 12:01 PM UTC daily
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run data fetch script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npm run fetch
+
+      - name: Commit updated CSV
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/squadmembers.csv
+          git commit -m "Update squadmembers.csv with new UIDs" || echo "No changes to commit"
+          git push
