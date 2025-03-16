@@ -1,5 +1,5 @@
 {
-  "name": "github-pages-supabase",
+  "name": "supabase",
   "version": "1.0.0",
   "scripts": {
     "fetch": "node scripts/fetch_data.js"
