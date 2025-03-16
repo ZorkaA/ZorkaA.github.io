@@ -106,6 +106,7 @@ async function main() {
   for (const uid of combinedUids) {
     try {
       const playerData = await fetchPlayerData(uid);
+      console.log(`Fetched player data for UID ${uid}:`, JSON.stringify(playerData, null, 2));
       const flattenedData = flattenObject(playerData);
       const dataToInsert = {
         uid: playerData.uid,
