@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase setup (credentials will come from environment variables)
+// Supabase setup (credentials from environment variables)
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 function flattenObject(obj, parent = '', result = {}) {
   for (const key in obj) {
     const newKey = parent ? `${parent}_${key}` : key;
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
+    if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
       flattenObject(obj[key], newKey, result);
     } else {
       result[newKey] = obj[key];
@@ -21,19 +21,52 @@ function flattenObject(obj, parent = '', result = {}) {
   return result;
 }
 
+// Helper to determine SQL type based on value
+function getSqlType(value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? 'BIGINT' : 'FLOAT';
+  } else if (typeof value === 'boolean') {
+    return 'BOOLEAN';
+  } else {
+    return 'TEXT';
+  }
+}
+
+// Dynamically update table schema
+async function updateTableSchema(tableName, data) {
+  const { data: columns, error } = await supabase.rpc('get_table_columns', { table_name: tableName });
+  if (error) throw error;
+
+  const existingColumns = new Set(columns.map(col => col.column_name));
+  const flattenedData = flattenObject(data);
+  
+  for (const [key, value] of Object.entries(flattenedData)) {
+    if (!existingColumns.has(key)) {
+      const sqlType = getSqlType(value);
+      const query = `ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS "${key}" ${sqlType};`;
+      const { error: alterError } = await supabase.rpc('execute_sql', { query });
+      if (alterError) {
+        console.error(`Failed to add column ${key}:`, alterError);
+      } else {
+        console.log(`Added column ${key} as ${sqlType}`);
+      }
+    }
+  }
+}
+
 async function fetchSquads() {
   const response = await axios.get('https://wbapi.wbpjs.com/squad/getSquadList');
-  return response.data; // ["a", "b", "c"]
+  return response.data;
 }
 
 async function fetchSquadMembers(squadName) {
   const response = await axios.get(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${squadName}`);
-  return response.data; // Array of member objects
+  return response.data;
 }
 
 async function fetchPlayerData(uid) {
   const response = await axios.get(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
-  return response.data; // Player object
+  return response.data;
 }
 
 async function loadExistingUids() {
@@ -53,6 +86,7 @@ async function saveUids(uids) {
 
 async function main() {
   const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const tableName = 'player_stats';
 
   // Step 1: Fetch squads
   const squads = await fetchSquads();
@@ -79,8 +113,11 @@ async function main() {
         ...flattenedData,
       };
 
+      // Dynamically update schema if new columns are detected
+      await updateTableSchema(tableName, playerData);
+
       const { error } = await supabase
-        .from('player_stats_subset')
+        .from(tableName)
         .upsert(dataToInsert, { onConflict: ['uid', 'date'] });
 
       if (error) {
