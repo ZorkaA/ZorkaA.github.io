@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase setup (credentials from environment variables)
+// Supabase setup
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -34,19 +34,26 @@ function getSqlType(value) {
 
 // Dynamically update table schema
 async function updateTableSchema(tableName, data) {
+  console.log(`Fetching existing columns for table ${tableName}`);
   const { data: columns, error } = await supabase.rpc('get_table_columns', { table_name: tableName });
-  if (error) throw error;
+  if (error) {
+    console.error('Failed to fetch columns:', JSON.stringify(error, null, 2));
+    throw error;
+  }
+  console.log('Existing columns:', columns);
 
-  const existingColumns = new Set(columns.map(col => col.column_name));
+  const existingColumns = new Set(columns.map(col => col.col_name));
   const flattenedData = flattenObject(data);
-  
+  console.log('New columns to check:', Object.keys(flattenedData));
+
   for (const [key, value] of Object.entries(flattenedData)) {
     if (!existingColumns.has(key)) {
       const sqlType = getSqlType(value);
       const query = `ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS "${key}" ${sqlType};`;
+      console.log(`Executing query: ${query}`);
       const { error: alterError } = await supabase.rpc('execute_sql', { query });
       if (alterError) {
-        console.error(`Failed to add column ${key}:`, alterError);
+        console.error(`Failed to add column ${key}:`, JSON.stringify(alterError, null, 2));
       } else {
         console.log(`Added column ${key} as ${sqlType}`);
       }
@@ -85,51 +92,56 @@ async function saveUids(uids) {
 }
 
 async function main() {
-  const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const tableName = 'player_stats';
+  const currentDate = new Date().toISOString().split('T')[0];
+  const tableName = 'player_stats_subset';
 
-  // Step 1: Fetch squads
-  const squads = await fetchSquads();
+  try {
+    // Step 1: Fetch squads
+    const squads = await fetchSquads();
+    console.log('Fetched squads:', squads);
 
-  // Step 2: Fetch squad members and collect UIDs
-  let allMembers = [];
-  for (const squad of squads) {
-    const members = await fetchSquadMembers(squad);
-    allMembers = allMembers.concat(members);
-  }
-  const existingUids = await loadExistingUids();
-  const newUids = new Set(allMembers.map(member => member.uid));
-  const combinedUids = new Set([...existingUids, ...newUids]);
-  await saveUids(combinedUids);
-
-  // Step 3: Fetch player data and insert into Supabase
-  for (const uid of combinedUids) {
-    try {
-      const playerData = await fetchPlayerData(uid);
-      console.log(`Fetched player data for UID ${uid}:`, JSON.stringify(playerData, null, 2));
-      const flattenedData = flattenObject(playerData);
-      const dataToInsert = {
-        uid: playerData.uid,
-        date: currentDate,
-        ...flattenedData,
-      };
-
-      // Dynamically update schema if new columns are detected
-      await updateTableSchema(tableName, playerData);
-
-      const { error } = await supabase
-        .from(tableName)
-        .upsert(dataToInsert, { onConflict: ['uid', 'date'] });
-
-      if (error) {
-        console.error(`Error inserting data for UID ${uid}:`, error);
-      } else {
-        console.log(`Inserted data for UID ${uid}`);
-      }
-    } catch (error) {
-      console.error(`Failed to fetch data for UID ${uid}:`, error);
+    // Step 2: Fetch squad members and collect UIDs
+    let allMembers = [];
+    for (const squad of squads) {
+      const members = await fetchSquadMembers(squad);
+      allMembers = allMembers.concat(members);
     }
+    const existingUids = await loadExistingUids();
+    const newUids = new Set(allMembers.map(member => member.uid));
+    const combinedUids = new Set([...existingUids, ...newUids]);
+    await saveUids(combinedUids);
+    console.log('Total UIDs to process:', combinedUids.size);
+
+    // Step 3: Fetch player data and insert into Supabase
+    for (const uid of combinedUids) {
+      try {
+        const playerData = await fetchPlayerData(uid);
+        console.log(`Fetched player data for UID ${uid}:`, JSON.stringify(playerData, null, 2));
+        const flattenedData = flattenObject(playerData);
+        const dataToInsert = {
+          uid: playerData.uid,
+          date: currentDate,
+          ...flattenedData,
+        };
+
+        await updateTableSchema(tableName, playerData);
+
+        const { error } = await supabase
+          .from(tableName)
+          .upsert(dataToInsert, { onConflict: ['uid', 'date'] });
+
+        if (error) {
+          console.error(`Error inserting data for UID ${uid}:`, JSON.stringify(error, null, 2));
+        } else {
+          console.log(`Inserted data for UID ${uid}`);
+        }
+      } catch (error) {
+        console.error(`Failed to process UID ${uid}:`, JSON.stringify(error, null, 2));
+      }
+    }
+  } catch (error) {
+    console.error('Main process failed:', JSON.stringify(error, null, 2));
   }
 }
 
-main().catch(console.error);
+main().catch(error => console.error('Script failed:', JSON.stringify(error, null, 2)));
