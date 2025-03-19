@@ -46,13 +46,13 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Load icons
+        // Load icons with correct relative path for GitHub Pages
         const launcherImg = new Image();
-        launcherImg.src = '../data/icons/radarlauncher.png';
+        launcherImg.src = '../../data/icons/radarlauncher.png';
         const missileImg = new Image();
-        missileImg.src = '../data/icons/missile.png';
+        missileImg.src = '../../data/icons/missile.png';
         const jetImg = new Image();
-        jetImg.src = '../data/icons/jet.png';
+        jetImg.src = '../../data/icons/jet.png';
 
         // Game objects
         const launcher = {
@@ -76,7 +76,7 @@
                 this.x = launcher.x + launcher.width / 2;
                 this.y = launcher.y;
                 this.width = 20;
-                this.height = 20;
+                this.height: 20;
                 this.angle = 0;
             }
         }
@@ -84,6 +84,7 @@
         // Game state
         let isRunning = false;
         let lastMissileTime = 0;
+        let imagesLoaded = 0;
         
         // Control values
         let missileFrequency = 5;  // seconds
@@ -127,10 +128,26 @@
         // Keyboard handling
         document.addEventListener('keydown', (e) => {
             if (e.key === 'p' || e.key === 'P') {
-                isRunning = !isRunning;
-                if (isRunning) gameLoop();
+                if (imagesLoaded === 3) {  // Only start if all images are loaded
+                    isRunning = !isRunning;
+                    if (isRunning) gameLoop(performance.now());
+                }
             }
         });
+
+        // Image loading check
+        function checkImageLoad() {
+            imagesLoaded++;
+            if (imagesLoaded === 3) {
+                draw();  // Initial draw once all images are loaded
+            }
+        }
+        launcherImg.onload = checkImageLoad;
+        missileImg.onload = checkImageLoad;
+        jetImg.onload = checkImageLoad;
+        launcherImg.onerror = () => console.error('Failed to load launcher image');
+        missileImg.onerror = () => console.error('Failed to load missile image');
+        jetImg.onerror = () => console.error('Failed to load jet image');
 
         function update(dt) {
             // Update jet position
@@ -212,9 +229,6 @@
             draw();
             requestAnimationFrame(gameLoop);
         }
-
-        // Initial draw
-        draw();
     </script>
 </body>
 </html>
