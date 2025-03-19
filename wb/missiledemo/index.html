@@ -4,14 +4,23 @@
     <title>Missile Guidance Demo</title>
     <style>
         body { margin: 0; display: flex; font-family: Arial, sans-serif; }
+        #container { display: flex; flex-direction: column; align-items: center; }
         #controls { padding: 20px; }
         canvas { border: 1px solid black; }
         .slider-container { margin: 10px 0; }
         button { padding: 5px 10px; margin: 5px 0; }
+        #stats { padding: 10px; background: #f0f0f0; width: 800px; text-align: center; }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="container">
+        <div id="stats">
+            Missiles Launched: <span id="launched">0</span> | 
+            Missiles Evaded: <span id="evaded">0</span> | 
+            Successful Hits: <span id="hits">0</span>
+        </div>
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
     <div id="controls">
         <div class="slider-container">
             <label>Missile Frequency (s): <span id="freqVal">5</span></label>
@@ -40,6 +49,11 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const toggleBtn = document.getElementById('toggleBtn');
+        const stats = {
+            launched: document.getElementById('launched'),
+            evaded: document.getElementById('evaded'),
+            hits: document.getElementById('hits')
+        };
         const controls = {
             missileFreq: document.getElementById('missileFreq'),
             missileSpeed: document.getElementById('missileSpeed'),
@@ -66,6 +80,8 @@
         let isRunning = false;
         let mouseX = canvas.width/2;
         let mouseY = canvas.height/2;
+        let statsData = { launched: 0, evaded: 0, hits: 0 };
+        let qPressed = false;
 
         // Update slider displays
         controls.missileFreq.oninput = () => document.getElementById('freqVal').textContent = controls.missileFreq.value;
@@ -91,16 +107,12 @@
             if (isRunning) animate();
         });
 
-        // Flare deployment
+        // Flare deployment with hold
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'q' || e.key === 'Q') {
-                const currentTime = performance.now();
-                if (currentTime - lastFlareTime > controls.flareFreq.value * 1000) {
-                    flares.push(new Flare(jet.x - 10, jet.y));
-                    flares.push(new Flare(jet.x + 10, jet.y));
-                    lastFlareTime = currentTime;
-                }
-            }
+            if (e.key === 'q' || e.key === 'Q') qPressed = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'q' || e.key === 'Q') qPressed = false;
         });
 
         class Missile {
@@ -111,12 +123,15 @@
                 this.width = 4;
                 this.height = 12;
                 this.distanceTraveled = 0;
+                this.maxDistance = Math.random() * (800 - 500) + 500;
                 this.angle = 0;
                 this.target = jet;
                 this.isFooled = Math.random() * 100 < parseInt(controls.foolRate.value) && flares.length > 0;
                 if (this.isFooled) {
                     this.target = flares[Math.floor(Math.random() * flares.length)];
                 }
+                statsData.launched++;
+                stats.launched.textContent = statsData.launched;
             }
 
             update(dt) {
@@ -150,17 +165,17 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.speedX = (x < jet.x ? -50 : 50);
+                this.speedX = (x < jet.x ? -1 : 1) * (Math.random() * (6 - 4) + 4);
                 this.speedY = 100;
                 this.radius = 3;
-                this.lifespan = 1;
-                this.creationTime = performance.now();
+                this.lifespan = Math.random() * (2 - 1) + 1;
+                this.lockedBy = null;
             }
 
             update(dt) {
                 this.x += this.speedX * dt;
                 this.y += this.speedY * dt;
-                this.lifespan -= dt;
+                if (!this.lockedBy) this.lifespan -= dt;
             }
 
             draw() {
@@ -176,7 +191,7 @@
                 this.x = x;
                 this.y = y;
                 this.radius = 10;
-                this.lifespan = 0.3; // 300ms
+                this.lifespan = 0.3;
                 this.creationTime = performance.now();
             }
 
@@ -199,6 +214,8 @@
                 if (jetDist < jet.radius + missile.height/2) {
                     explosions.push(new Explosion(missile.x, missile.y));
                     missiles.splice(mIndex, 1);
+                    statsData.hits++;
+                    stats.hits.textContent = statsData.hits;
                     return;
                 }
 
@@ -209,6 +226,8 @@
                         explosions.push(new Explosion(missile.x, missile.y));
                         missiles.splice(mIndex, 1);
                         flares.splice(fIndex, 1);
+                        statsData.evaded++;
+                        stats.evaded.textContent = statsData.evaded;
                         return;
                     }
                 });
@@ -216,8 +235,8 @@
         }
 
         function drawScene() {
-            // Dark gray background
-            ctx.fillStyle = '#666666';
+            // Slightly brighter gray background
+            ctx.fillStyle = '#808080';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw launcher
@@ -263,18 +282,30 @@
                 lastMissileTime = currentTime;
             }
 
+            // Flare launch while Q held
+            if (qPressed && currentTime - lastFlareTime > controls.flareFreq.value * 1000) {
+                flares.push(new Flare(jet.x - 10, jet.y));
+                flares.push(new Flare(jet.x + 10, jet.y));
+                lastFlareTime = currentTime;
+            }
+
             // Update missiles
-            missiles = missiles.filter(m => 
-                m.y > 0 && 
-                m.y < canvas.height && 
-                m.x > 0 && 
-                m.x < canvas.width && 
-                m.distanceTraveled < 600
-            );
-            missiles.forEach(missile => missile.update(dt));
+            missiles = missiles.filter(m => {
+                if (m.y > 0 && m.y < canvas.height && m.x > 0 && m.x < canvas.width && m.distanceTraveled < m.maxDistance) {
+                    return true;
+                }
+                explosions.push(new Explosion(m.x, m.y));
+                statsData.evaded++;
+                stats.evaded.textContent = statsData.evaded;
+                return false;
+            });
+            missiles.forEach(missile => {
+                missile.update(dt);
+                if (missile.isFooled && missile.target instanceof Flare) missile.target.lockedBy = missile;
+            });
 
             // Update flares
-            flares = flares.filter(f => f.lifespan > 0);
+            flares = flares.filter(f => f.lifespan > 0 || f.lockedBy);
             flares.forEach(flare => flare.update(dt));
 
             // Update explosions
