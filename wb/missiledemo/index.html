@@ -57,9 +57,10 @@
 
         // Game objects
         const launcher = { x: canvas.width/2, y: canvas.height - 20 };
-        let jet = { x: canvas.width/2, y: canvas.height/2, speed: 150 };
+        let jet = { x: canvas.width/2, y: canvas.height/2, speed: 150, radius: 5 };
         let missiles = [];
         let flares = [];
+        let explosions = [];
         let lastMissileTime = 0;
         let lastFlareTime = 0;
         let isRunning = false;
@@ -112,7 +113,6 @@
                 this.distanceTraveled = 0;
                 this.angle = 0;
                 this.target = jet;
-                // Determine if fooled by flare at launch
                 this.isFooled = Math.random() * 100 < parseInt(controls.foolRate.value) && flares.length > 0;
                 if (this.isFooled) {
                     this.target = flares[Math.floor(Math.random() * flares.length)];
@@ -153,7 +153,7 @@
                 this.speedX = (x < jet.x ? -50 : 50);
                 this.speedY = 100;
                 this.radius = 3;
-                this.lifespan = 1; // 1 second
+                this.lifespan = 1;
                 this.creationTime = performance.now();
             }
 
@@ -171,8 +171,54 @@
             }
         }
 
+        class Explosion {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.lifespan = 0.3; // 300ms
+                this.creationTime = performance.now();
+            }
+
+            update(dt) {
+                this.lifespan -= dt;
+            }
+
+            draw() {
+                ctx.fillStyle = 'orange';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function checkCollisions() {
+            missiles.forEach((missile, mIndex) => {
+                // Check jet collision
+                const jetDist = Math.sqrt((missile.x - jet.x) ** 2 + (missile.y - jet.y) ** 2);
+                if (jetDist < jet.radius + missile.height/2) {
+                    explosions.push(new Explosion(missile.x, missile.y));
+                    missiles.splice(mIndex, 1);
+                    return;
+                }
+
+                // Check flare collisions
+                flares.forEach((flare, fIndex) => {
+                    const flareDist = Math.sqrt((missile.x - flare.x) ** 2 + (missile.y - flare.y) ** 2);
+                    if (flareDist < flare.radius + missile.height/2) {
+                        explosions.push(new Explosion(missile.x, missile.y));
+                        missiles.splice(mIndex, 1);
+                        flares.splice(fIndex, 1);
+                        return;
+                    }
+                });
+            });
+        }
+
         function drawScene() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Dark gray background
+            ctx.fillStyle = '#666666';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw launcher
             ctx.fillStyle = 'black';
@@ -185,7 +231,7 @@
             // Draw jet
             ctx.fillStyle = 'green';
             ctx.beginPath();
-            ctx.arc(jet.x, jet.y, 5, 0, Math.PI * 2);
+            ctx.arc(jet.x, jet.y, jet.radius, 0, Math.PI * 2);
             ctx.fill();
 
             // Draw missiles
@@ -193,6 +239,9 @@
 
             // Draw flares
             flares.forEach(flare => flare.draw());
+
+            // Draw explosions
+            explosions.forEach(explosion => explosion.draw());
         }
 
         function update(dt) {
@@ -227,6 +276,13 @@
             // Update flares
             flares = flares.filter(f => f.lifespan > 0);
             flares.forEach(flare => flare.update(dt));
+
+            // Update explosions
+            explosions = explosions.filter(e => e.lifespan > 0);
+            explosions.forEach(explosion => explosion.update(dt));
+
+            // Check collisions
+            checkCollisions();
         }
 
         let lastTime = 0;
