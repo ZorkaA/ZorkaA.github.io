@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Missile Guidance Demo</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            display: flex;
+        }
+        #controls {
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        canvas {
+            background: #87CEEB;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="controls">
+            <h3>Controls</h3>
+            <p>Press 'P' to Start/Pause</p>
+            <p>Mouse to control aircraft</p>
+            <div>
+                <label>Missile Frequency (s): <span id="freqValue">5</span></label><br>
+                <input type="range" id="missileFreq" min="1" max="10" value="5">
+            </div>
+            <div>
+                <label>Missile Speed: <span id="missileSpeedValue">200</span></label><br>
+                <input type="range" id="missileSpeed" min="100" max="400" value="200">
+            </div>
+            <div>
+                <label>Jet Speed: <span id="jetSpeedValue">150</span></label><br>
+                <input type="range" id="jetSpeed" min="50" max="300" value="150">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Load icons
+        const launcherImg = new Image();
+        launcherImg.src = '../data/icons/radarlauncher.png';
+        const missileImg = new Image();
+        missileImg.src = '../data/icons/missile.png';
+        const jetImg = new Image();
+        jetImg.src = '../data/icons/jet.png';
+
+        // Game objects
+        const launcher = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 50,
+            width: 50,
+            height: 50
+        };
+
+        const jet = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: 50,
+            height: 50,
+            angle: 0
+        };
+
+        const missiles = [];
+        class Missile {
+            constructor() {
+                this.x = launcher.x + launcher.width / 2;
+                this.y = launcher.y;
+                this.width = 20;
+                this.height = 20;
+                this.angle = 0;
+            }
+        }
+
+        // Game state
+        let isRunning = false;
+        let lastMissileTime = 0;
+        
+        // Control values
+        let missileFrequency = 5;  // seconds
+        let missileSpeed = 200;    // pixels per second
+        let jetSpeed = 150;        // pixels per second
+
+        // Get slider elements
+        const freqSlider = document.getElementById('missileFreq');
+        const missileSpeedSlider = document.getElementById('missileSpeed');
+        const jetSpeedSlider = document.getElementById('jetSpeed');
+        const freqValue = document.getElementById('freqValue');
+        const missileSpeedValue = document.getElementById('missileSpeedValue');
+        const jetSpeedValue = document.getElementById('jetSpeedValue');
+
+        // Update slider displays
+        freqSlider.oninput = () => {
+            missileFrequency = parseInt(freqSlider.value);
+            freqValue.textContent = missileFrequency;
+        };
+        missileSpeedSlider.oninput = () => {
+            missileSpeed = parseInt(missileSpeedSlider.value);
+            missileSpeedValue.textContent = missileSpeed;
+        };
+        jetSpeedSlider.oninput = () => {
+            jetSpeed = parseInt(jetSpeedSlider.value);
+            jetSpeedValue.textContent = jetSpeed;
+        };
+
+        // Mouse handling
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const dx = mouseX - jet.x;
+            const dy = mouseY - jet.y;
+            jet.angle = Math.atan2(dy, dx);
+        });
+
+        // Keyboard handling
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P') {
+                isRunning = !isRunning;
+                if (isRunning) gameLoop();
+            }
+        });
+
+        function update(dt) {
+            // Update jet position
+            jet.x += Math.cos(jet.angle) * jetSpeed * dt;
+            jet.y += Math.sin(jet.angle) * jetSpeed * dt;
+            
+            // Keep jet in bounds
+            jet.x = Math.max(0, Math.min(canvas.width - jet.width, jet.x));
+            jet.y = Math.max(0, Math.min(canvas.height - jet.height, jet.y));
+
+            // Launch missiles
+            const currentTime = Date.now();
+            if (currentTime - lastMissileTime >= missileFrequency * 1000) {
+                missiles.push(new Missile());
+                lastMissileTime = currentTime;
+            }
+
+            // Update missiles
+            missiles.forEach((missile, index) => {
+                // Simple homing: move toward jet
+                const dx = jet.x - missile.x;
+                const dy = jet.y - missile.y;
+                const angle = Math.atan2(dy, dx);
+                missile.angle = angle;
+                
+                missile.x += Math.cos(angle) * missileSpeed * dt;
+                missile.y += Math.sin(angle) * missileSpeed * dt;
+
+                // Remove missiles that go off-screen
+                if (missile.x < 0 || missile.x > canvas.width || 
+                    missile.y < 0 || missile.y > canvas.height) {
+                    missiles.splice(index, 1);
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw launcher
+            ctx.save();
+            ctx.translate(launcher.x + launcher.width/2, launcher.y + launcher.height/2);
+            ctx.drawImage(launcherImg, -launcher.width/2, -launcher.height/2, launcher.width, launcher.height);
+            ctx.restore();
+
+            // Draw jet
+            ctx.save();
+            ctx.translate(jet.x + jet.width/2, jet.y + jet.height/2);
+            ctx.rotate(jet.angle);
+            ctx.drawImage(jetImg, -jet.width/2, -jet.height/2, jet.width, jet.height);
+            ctx.restore();
+
+            // Draw missiles
+            missiles.forEach(missile => {
+                ctx.save();
+                ctx.translate(missile.x + missile.width/2, missile.y + missile.height/2);
+                ctx.rotate(missile.angle);
+                ctx.drawImage(missileImg, -missile.width/2, -missile.height/2, missile.width, missile.height);
+                ctx.restore();
+            });
+
+            // Draw instructions if paused
+            if (!isRunning) {
+                ctx.fillStyle = 'black';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Press P to Start', canvas.width/2, canvas.height/2);
+            }
+        }
+
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            if (!isRunning) return;
+            
+            const dt = (timestamp - lastTime) / 1000; // Convert to seconds
+            lastTime = timestamp;
+
+            update(dt);
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
