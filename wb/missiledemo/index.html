@@ -163,8 +163,8 @@
 
             update(dt) {
                 const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
-                const targetX = this.target.x;
-                const targetY = this.target.y;
+                let targetX = this.target.x;
+                let targetY = this.target.y;
                 const dx = targetX - this.x;
                 const dy = targetY - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -172,15 +172,15 @@
                 const angleDiff = Math.atan2(Math.sin(targetAngle - this.angle), Math.cos(targetAngle - this.angle));
 
                 // Check if target is within seeker cone
-                if (Math.abs(angleDiff) <= seekerAngle / 2) {
-                    this.lastTargetPos = { x: targetX, y: targetY };
-                } else {
+                if (Math.abs(angleDiff) > seekerAngle / 2) {
                     targetX = this.lastTargetPos.x;
                     targetY = this.lastTargetPos.y;
+                } else {
+                    this.lastTargetPos = { x: targetX, y: targetY };
                 }
 
                 // Calculate turn rate with G limit (v^2 / r = g, r = v^2 / g)
-                const minTurnRadius = (this.speed * this.speed) / (this.maxG * 9.81); // 9.81 m/s^2 per G
+                const minTurnRadius = (this.speed * this.speed) / (this.maxG * 9.81);
                 const maxTurnRate = this.speed / minTurnRadius;
                 let desiredTurn = Math.atan2(targetY - this.y, targetX - this.x) - this.angle;
                 desiredTurn = Math.atan2(Math.sin(desiredTurn), Math.cos(desiredTurn));
