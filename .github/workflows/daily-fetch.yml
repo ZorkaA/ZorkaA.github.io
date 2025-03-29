@@ -20,16 +20,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run data fetch script
+      - name: Run insert uids script
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: npm run fetch
+        run: npm run insert-uids
 
-      - name: Commit updated CSV
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add data/squadmembers.csv
-          git commit -m "Update squadmembers.csv with new UIDs" || echo "No changes to commit"
-          git push
+      # Remove the commit step since we're not updating a CSV
