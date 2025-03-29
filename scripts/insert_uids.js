@@ -4,6 +4,8 @@ const { createClient } = require('@supabase/supabase-js');
 // Supabase setup
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
+console.log('Supabase Key:', supabaseKey ? 'Set (hidden)' : 'Not set');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Axios with timeout
@@ -11,12 +13,12 @@ const axiosInstance = axios.create({ timeout: 30000 }); // 30 seconds timeout
 
 async function fetchSquads() {
   const response = await axiosInstance.get('https://wbapi.wbpjs.com/squad/getSquadList');
-  return response.data; // Array of squad names
+  return response.data;
 }
 
 async function fetchSquadMembers(squadName) {
   const response = await axiosInstance.get(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${squadName}`);
-  return response.data; // Array of member objects
+  return response.data;
 }
 
 async function main() {
@@ -42,18 +44,22 @@ async function main() {
       uid: member.uid,
       name: member.nick
     }));
-    console.log('Total unique UIDs to insert:', new Set(uidsData.map(d => d.uid)).size);
+    const uniqueUids = new Set(uidsData.map(d => d.uid)).size;
+    console.log('Total unique UIDs to insert:', uniqueUids);
+    console.log('Sample data:', JSON.stringify(uidsData.slice(0, 3), null, 2)); // Log first 3 for verification
 
     // Step 4: Insert into Supabase
-    const { error } = await supabase
+    console.log('Starting Supabase upsert...');
+    const { data, error } = await supabase
       .from('uids')
       .upsert(uidsData, { onConflict: 'uid' })
-      .timeout(10000); // 10s timeout
+      .timeout(30000); // 30s timeout
 
     if (error) {
-      console.error('Error inserting uids:', JSON.stringify(error, null, 2));
+      console.error('Upsert failed with error:', JSON.stringify(error, null, 2));
+      throw error;
     } else {
-      console.log('Inserted uids successfully:', uidsData.length);
+      console.log('Upsert succeeded. Inserted/updated rows:', data ? data.length : 'unknown');
     }
   } catch (error) {
     console.error('Main process failed:', JSON.stringify(error, null, 2));
