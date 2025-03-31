@@ -9,7 +9,7 @@ console.log('Supabase Key:', supabaseKey ? 'Set (hidden)' : 'Not set');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Axios with timeout
-const axiosInstance = axios.create({ timeout: 30000 }); // 30 seconds timeout
+const axiosInstance = axios.create({ timeout: 30000 });
 
 async function fetchSquads() {
   const response = await axiosInstance.get('https://wbapi.wbpjs.com/squad/getSquadList');
@@ -21,31 +21,13 @@ async function fetchSquadMembers(squadName) {
   return response.data;
 }
 
-// Batch insert function
-async function batchInsert(tableName, data, batchSize = 500) {
-  for (let i = 0; i < data.length; i += batchSize) {
-    const batch = data.slice(i, i + batchSize);
-    console.log(`Inserting batch ${i / batchSize + 1} of ${Math.ceil(data.length / batchSize)} (${batch.length} records)`);
-    const { data: result, error } = await supabase
-      .from(tableName)
-      .upsert(batch, { onConflict: 'uid' })
-      .timeout(30000);
-    if (error) {
-      console.error(`Batch ${i / batchSize + 1} failed:`, JSON.stringify(error, null, 2));
-      throw error;
-    } else {
-      console.log(`Batch ${i / batchSize + 1} succeeded:`, result ? result.length : 'unknown');
-    }
-  }
-}
-
 async function main() {
   try {
-    // Test connection with a single insert
-    console.log('Testing Supabase connection with a single insert...');
+    // Test connectivity with a single insert
+    console.log('Testing single insert...');
     const testResult = await supabase
       .from('uids')
-      .insert({ uid: 'test123', name: 'TestUser' })
+      .upsert([{ uid: 'test123', name: 'TestUser' }], { onConflict: 'uid' })
       .timeout(10000);
     if (testResult.error) {
       console.error('Test insert failed:', JSON.stringify(testResult.error, null, 2));
@@ -79,11 +61,19 @@ async function main() {
     console.log('Total unique UIDs to insert:', uniqueUids);
     console.log('Sample data:', JSON.stringify(uidsData.slice(0, 3), null, 2));
 
-    // Step 4: Insert in batches
-    console.log('Starting Supabase upsert in batches...');
-    await batchInsert('uids', uidsData, 500);
+    // Step 4: Insert into Supabase
+    console.log('Starting Supabase upsert...');
+    const { data, error } = await supabase
+      .from('uids')
+      .upsert(uidsData, { onConflict: 'uid' })
+      .timeout(30000);
 
-    console.log('All batches inserted successfully');
+    if (error) {
+      console.error('Upsert failed with error:', JSON.stringify(error, null, 2));
+      throw error;
+    } else {
+      console.log('Upsert succeeded. Inserted/updated rows:', data ? data.length : 'unknown');
+    }
   } catch (error) {
     console.error('Main process failed:', JSON.stringify(error, null, 2));
   }
