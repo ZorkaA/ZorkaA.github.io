@@ -23,37 +23,11 @@ async function fetchSquadMembers(squadName) {
 
 async function main() {
   try {
-    // Step 1: Test connectivity with a select
-    console.log('Testing Supabase connectivity with a select...');
-    const { data: selectData, error: selectError } = await supabase
-      .from('uids')
-      .select('*')
-      .limit(1);
-    if (selectError) {
-      console.error('Select test failed:', JSON.stringify(selectError, null, 2));
-      throw selectError;
-    } else {
-      console.log('Select test succeeded:', JSON.stringify(selectData, null, 2));
-    }
-
-    // Step 2: Test upsert (instead of insert) to handle existing test row
-    console.log('Testing single upsert...');
-    const { data: testData, error: testError } = await supabase
-      .from('uids')
-      .upsert({ uid: 'test123', name: 'TestUser' })
-      .select();
-    if (testError) {
-      console.error('Test upsert failed:', JSON.stringify(testError, null, 2));
-      throw testError;
-    } else {
-      console.log('Test upsert succeeded:', JSON.stringify(testData, null, 2));
-    }
-
-    // Step 3: Fetch squads
+    // Step 1: Fetch squads
     const squads = await fetchSquads();
     console.log('Fetched squads:', squads);
 
-    // Step 4: Fetch squad members and collect UID/name pairs
+    // Step 2: Fetch squad members and collect UID/name pairs
     let allMembers = [];
     for (const squad of squads) {
       try {
@@ -65,7 +39,7 @@ async function main() {
       }
     }
 
-    // Step 5: Prepare data for insertion
+    // Step 3: Prepare data for insertion
     const uidsData = allMembers.map(member => ({
       uid: member.uid,
       name: member.nick
@@ -74,7 +48,7 @@ async function main() {
     console.log('Total unique UIDs to insert:', uniqueUids);
     console.log('Sample data:', JSON.stringify(uidsData.slice(0, 3), null, 2));
 
-    // Step 6: Insert data in batches to avoid payload issues
+    // Step 4: Insert data in batches
     const batchSize = 500;
     for (let i = 0; i < uidsData.length; i += batchSize) {
       const batch = uidsData.slice(i, i + batchSize);
