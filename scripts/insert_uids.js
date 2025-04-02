@@ -36,37 +36,24 @@ async function main() {
       console.log('Select test succeeded:', JSON.stringify(selectData, null, 2));
     }
 
-    // Step 2: Test single insert with return
-    console.log('Testing single insert...');
+    // Step 2: Test upsert (instead of insert) to handle existing test row
+    console.log('Testing single upsert...');
     const { data: testData, error: testError } = await supabase
       .from('uids')
-      .insert({ uid: 'test123', name: 'TestUser' })
-      .select(); // Explicitly return inserted data
+      .upsert({ uid: 'test123', name: 'TestUser' })
+      .select();
     if (testError) {
-      console.error('Test insert failed:', JSON.stringify(testError, null, 2));
+      console.error('Test upsert failed:', JSON.stringify(testError, null, 2));
       throw testError;
     } else {
-      console.log('Test insert succeeded:', JSON.stringify(testData, null, 2));
+      console.log('Test upsert succeeded:', JSON.stringify(testData, null, 2));
     }
 
-    // Step 3: Verify insert
-    console.log('Verifying insert...');
-    const { data: verifyData, error: verifyError } = await supabase
-      .from('uids')
-      .select('*')
-      .eq('uid', 'test123');
-    if (verifyError) {
-      console.error('Verification failed:', JSON.stringify(verifyError, null, 2));
-      throw verifyError;
-    } else {
-      console.log('Verification result:', JSON.stringify(verifyData, null, 2));
-    }
-
-    // Step 4: Fetch squads
+    // Step 3: Fetch squads
     const squads = await fetchSquads();
     console.log('Fetched squads:', squads);
 
-    // Step 5: Fetch squad members and collect UID/name pairs
+    // Step 4: Fetch squad members and collect UID/name pairs
     let allMembers = [];
     for (const squad of squads) {
       try {
@@ -78,7 +65,7 @@ async function main() {
       }
     }
 
-    // Step 6: Prepare data for insertion
+    // Step 5: Prepare data for insertion
     const uidsData = allMembers.map(member => ({
       uid: member.uid,
       name: member.nick
@@ -87,18 +74,24 @@ async function main() {
     console.log('Total unique UIDs to insert:', uniqueUids);
     console.log('Sample data:', JSON.stringify(uidsData.slice(0, 3), null, 2));
 
-    // Step 7: Insert data
-    console.log('Starting Supabase upsert...');
-    const { data, error } = await supabase
-      .from('uids')
-      .upsert(uidsData, { onConflict: 'uid' })
-      .select();
-    if (error) {
-      console.error('Upsert failed:', JSON.stringify(error, null, 2));
-      throw error;
-    } else {
-      console.log('Upsert succeeded:', data.length);
+    // Step 6: Insert data in batches to avoid payload issues
+    const batchSize = 500;
+    for (let i = 0; i < uidsData.length; i += batchSize) {
+      const batch = uidsData.slice(i, i + batchSize);
+      console.log(`Upserting batch ${i / batchSize + 1} of ${Math.ceil(uidsData.length / batchSize)} (${batch.length} records)`);
+      const { data, error } = await supabase
+        .from('uids')
+        .upsert(batch, { onConflict: 'uid' })
+        .select();
+      if (error) {
+        console.error(`Batch upsert failed:`, JSON.stringify(error, null, 2));
+        throw error;
+      } else {
+        console.log(`Batch upsert succeeded:`, data.length);
+      }
     }
+
+    console.log('All data inserted successfully');
   } catch (error) {
     console.error('Main process failed:', JSON.stringify(error, null, 2));
     throw error;
