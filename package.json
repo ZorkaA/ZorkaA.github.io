@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "fetch": "node scripts/fetch_data.js",
-    "insert-uids": "node scripts/insert_uids.js"
+    "insert-uids": "node scripts/insert_uids.js",
+    "wbtsdb": "node scripts/wbtsdb.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
