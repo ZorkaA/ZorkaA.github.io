@@ -1,0 +1,27 @@
+name: wbtsdb final
+
+on:
+  schedule:
+    - cron: '1 13 * * *' 
+  workflow_dispatch: 
+
+jobs:
+  fetch-player-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run wbtsdb script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npm run wbtsdb
