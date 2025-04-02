@@ -9,7 +9,7 @@ console.log('Supabase Key:', supabaseKey ? 'Set (hidden)' : 'Not set');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Axios with timeout
-const axiosInstance = axios.create({ timeout: 30000 });
+const axiosInstance = axios.create({ timeout: 30000 }); // 30 seconds timeout
 
 async function fetchSquads() {
   const response = await axiosInstance.get('https://wbapi.wbpjs.com/squad/getSquadList');
@@ -21,26 +21,41 @@ async function fetchSquadMembers(squadName) {
   return response.data;
 }
 
+// Health check function
+async function checkSupabaseHealth() {
+  try {
+    const response = await axios.get(`${supabaseUrl}/healthz`, {
+      headers: { Authorization: `Bearer ${supabaseKey}` }
+    });
+    console.log('Supabase health check:', response.status, response.data);
+  } catch (error) {
+    console.error('Health check failed:', JSON.stringify(error.response ? error.response.data : error.message, null, 2));
+  }
+}
+
 async function main() {
   try {
-    // Test connectivity with a single insert
+    // Step 1: Check Supabase connectivity
+    console.log('Checking Supabase health...');
+    await checkSupabaseHealth();
+
+    // Step 2: Test single insert
     console.log('Testing single insert...');
-    const testResult = await supabase
+    const { data: testData, error: testError } = await supabase
       .from('uids')
-      .upsert([{ uid: 'test123', name: 'TestUser' }], { onConflict: 'uid' })
-      .timeout(10000);
-    if (testResult.error) {
-      console.error('Test insert failed:', JSON.stringify(testResult.error, null, 2));
-      throw testResult.error;
+      .insert({ uid: 'test123', name: 'TestUser' });
+    if (testError) {
+      console.error('Test insert failed:', JSON.stringify(testError, null, 2));
+      throw testError;
     } else {
-      console.log('Test insert succeeded:', JSON.stringify(testResult.data, null, 2));
+      console.log('Test insert succeeded:', JSON.stringify(testData, null, 2));
     }
 
-    // Step 1: Fetch squads
+    // Step 3: Fetch squads
     const squads = await fetchSquads();
     console.log('Fetched squads:', squads);
 
-    // Step 2: Fetch squad members and collect UID/name pairs
+    // Step 4: Fetch squad members and collect UID/name pairs
     let allMembers = [];
     for (const squad of squads) {
       try {
@@ -52,7 +67,7 @@ async function main() {
       }
     }
 
-    // Step 3: Prepare data for insertion
+    // Step 5: Prepare data for insertion
     const uidsData = allMembers.map(member => ({
       uid: member.uid,
       name: member.nick
@@ -61,21 +76,20 @@ async function main() {
     console.log('Total unique UIDs to insert:', uniqueUids);
     console.log('Sample data:', JSON.stringify(uidsData.slice(0, 3), null, 2));
 
-    // Step 4: Insert into Supabase
+    // Step 6: Insert data (single batch for now)
     console.log('Starting Supabase upsert...');
     const { data, error } = await supabase
       .from('uids')
-      .upsert(uidsData, { onConflict: 'uid' })
-      .timeout(30000);
-
+      .upsert(uidsData, { onConflict: 'uid' });
     if (error) {
-      console.error('Upsert failed with error:', JSON.stringify(error, null, 2));
+      console.error('Upsert failed:', JSON.stringify(error, null, 2));
       throw error;
     } else {
-      console.log('Upsert succeeded. Inserted/updated rows:', data ? data.length : 'unknown');
+      console.log('Upsert succeeded:', data ? data.length : 'unknown');
     }
   } catch (error) {
     console.error('Main process failed:', JSON.stringify(error, null, 2));
+    throw error; // Re-throw to ensure outer catch logs it
   }
 }
 
