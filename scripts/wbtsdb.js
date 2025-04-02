@@ -57,11 +57,21 @@ async function updateTableSchema(tableName, sampleData) {
       const { error: alterError } = await supabase.rpc('execute_sql', { query });
       if (alterError) {
         console.error(`Failed to add column ${key}:`, JSON.stringify(alterError, null, 2));
+        throw alterError;
       } else {
         console.log(`Added column ${key} as ${sqlType}`);
       }
     }
   }
+
+  // Verify schema update
+  console.log('Verifying schema update...');
+  const { data: updatedColumns, error: verifyError } = await supabase.rpc('get_table_columns', { table_name: tableName });
+  if (verifyError) {
+    console.error('Failed to verify columns:', JSON.stringify(verifyError, null, 2));
+    throw verifyError;
+  }
+  console.log('Updated columns:', updatedColumns.map(col => col.col_name));
 }
 
 async function fetchPlayerData(uid) {
@@ -69,8 +79,12 @@ async function fetchPlayerData(uid) {
   return response.data;
 }
 
+async function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
-  const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const currentDate = new Date().toISOString().split('T')[0];
   try {
     // Step 1: Fetch UIDs from the uids table
     console.log('Fetching UIDs from Supabase...');
@@ -84,12 +98,14 @@ async function main() {
     const uids = uidsData.map(row => row.uid);
     console.log('Total UIDs to process:', uids.length);
 
-    // Step 2: Fetch sample player data for schema update
+    // Step 2: Fetch sample player data and update schema
     if (uids.length > 0) {
       const sampleUid = uids[0];
       console.log(`Fetching sample data for UID ${sampleUid}...`);
       const sampleData = await fetchPlayerData(sampleUid);
       await updateTableSchema('wbtsdb', sampleData);
+      console.log('Waiting 5 seconds for schema cache to refresh...');
+      await delay(5000); // 5-second delay
     } else {
       console.log('No UIDs found, skipping processing');
       return;
