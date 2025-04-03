@@ -35,52 +35,42 @@ function getSqlType(value) {
   }
 }
 
-// Dynamically update table schema with multiple samples
-async function updateTableSchema(tableName, sampleDatas) {
+// Update table schema for a batch
+async function ensureSchemaForBatch(tableName, batchData) {
   console.log(`Fetching existing columns for ${tableName}...`);
   const { data: columns, error } = await supabase.rpc('get_table_columns', { table_name: tableName });
   if (error) {
     console.error('Failed to fetch columns:', JSON.stringify(error, null, 2));
     throw error;
   }
+  const existingColumns = new Set(columns.map(col => col.col_name));
   console.log('Existing columns:', columns.map(col => col.col_name));
 
-  const existingColumns = new Set(columns.map(col => col.col_name));
-  let allFields = {};
-  sampleDatas.forEach(sampleData => {
-    const flattenedData = flattenObject(sampleData);
-    Object.assign(allFields, flattenedData);
-  });
-  console.log('New columns to check:', Object.keys(allFields).length);
-
-  for (const [key, value] of Object.entries(allFields)) {
-    if (!existingColumns.has(key)) {
-      const sqlType = getSqlType(value);
-      const query = `ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS "${key}" ${sqlType};`;
-      console.log(`Executing: ${query}`);
-      const { error: alterError } = await supabase.rpc('execute_sql', { query });
-      if (alterError) {
-        console.error(`Failed to add column ${key}:`, JSON.stringify(alterError, null, 2));
-        throw alterError;
-      } else {
-        console.log(`Added column ${key} as ${sqlType}`);
+  let newColumnsAdded = false;
+  for (const record of batchData) {
+    const flattenedData = flattenObject(record);
+    for (const [key, value] of Object.entries(flattenedData)) {
+      if (!existingColumns.has(key)) {
+        const sqlType = getSqlType(value);
+        const query = `ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS "${key}" ${sqlType};`;
+        console.log(`Executing: ${query}`);
+        const { error: alterError } = await supabase.rpc('execute_sql', { query });
+        if (alterError) {
+          console.error(`Failed to add column ${key}:`, JSON.stringify(alterError, null, 2));
+          throw alterError;
+        } else {
+          console.log(`Added column ${key} as ${sqlType}`);
+          existingColumns.add(key);
+          newColumnsAdded = true;
+        }
       }
     }
   }
 
-  // Wait for schema cache to refresh
-  console.log('Waiting 10 seconds for schema cache to refresh...');
-  await new Promise(resolve => setTimeout(resolve, 10000));
-
-  // Verify schema update
-  console.log('Verifying schema update...');
-  const { data: updatedColumns, error: verifyError } = await supabase.rpc('get_table_columns', { table_name: tableName });
-  if (verifyError) {
-    console.error('Failed to verify columns:', JSON.stringify(verifyError, null, 2));
-    throw verifyError;
+  if (newColumnsAdded) {
+    console.log('Waiting 10 seconds for schema cache to refresh...');
+    await new Promise(resolve => setTimeout(resolve, 10000));
   }
-  console.log('Updated columns:', updatedColumns.map(col => col.col_name));
-  return new Set(updatedColumns.map(col => col.col_name));
 }
 
 async function fetchPlayerData(uid) {
@@ -103,30 +93,7 @@ async function main() {
     const uids = uidsData.map(row => row.uid);
     console.log('Total UIDs to process:', uids.length);
 
-    // Step 2: Fetch sample player data for schema update (first 5 UIDs)
-    if (uids.length > 0) {
-      const sampleUids = uids.slice(0, Math.min(5, uids.length));
-      console.log(`Fetching sample data for UIDs: ${sampleUids.join(', ')}...`);
-      const sampleDatas = [];
-      for (const uid of sampleUids) {
-        try {
-          const data = await fetchPlayerData(uid);
-          sampleDatas.push(data);
-        } catch (error) {
-          console.error(`Failed to fetch sample data for UID ${uid}:`, JSON.stringify(error, null, 2));
-        }
-      }
-      if (sampleDatas.length === 0) {
-        console.log('No sample data retrieved, skipping processing');
-        return;
-      }
-      await updateTableSchema('wbtsdb', sampleDatas);
-    } else {
-      console.log('No UIDs found, skipping processing');
-      return;
-    }
-
-    // Step 3: Fetch and insert player data in batches
+    // Step 2: Fetch and insert player data in batches
     const batchSize = 100;
     for (let i = 0; i < uids.length; i += batchSize) {
       const batchUids = uids.slice(i, i + batchSize);
@@ -148,6 +115,9 @@ async function main() {
       }
 
       if (batchData.length > 0) {
+        // Ensure schema includes all columns for this batch
+        await ensureSchemaForBatch('wbtsdb', batchData);
+
         console.log(`Upserting ${batchData.length} records...`);
         const { data, error } = await supabase
           .from('wbtsdb')
