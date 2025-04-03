@@ -8,8 +8,8 @@ console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
 console.log('Supabase Key:', supabaseKey ? 'Set (hidden)' : 'Not set');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Axios with timeout
-const axiosInstance = axios.create({ timeout: 30000 }); // 30 seconds timeout
+// Axios with longer timeout
+const axiosInstance = axios.create({ timeout: 60000 }); // 60 seconds timeout
 
 // Helper to flatten nested objects
 function flattenObject(obj, parent = '', result = {}) {
@@ -74,8 +74,16 @@ async function ensureSchemaForBatch(tableName, batchData) {
 }
 
 async function fetchPlayerData(uid) {
-  const response = await axiosInstance.get(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
-  return response.data;
+  try {
+    const response = await axiosInstance.get(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to fetch data for UID ${uid}:`, JSON.stringify({
+      message: error.message,
+      code: error.code,
+    }, null, 2));
+    return null; // Return null to skip this UID
+  }
 }
 
 async function main() {
@@ -94,23 +102,21 @@ async function main() {
     console.log('Total UIDs to process:', uids.length);
 
     // Step 2: Fetch and insert player data in batches
-    const batchSize = 100;
+    const batchSize = 50; // Reduced to 50
     for (let i = 0; i < uids.length; i += batchSize) {
       const batchUids = uids.slice(i, i + batchSize);
       console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(uids.length / batchSize)} (${batchUids.length} UIDs)`);
 
       const batchData = [];
       for (const uid of batchUids) {
-        try {
-          const playerData = await fetchPlayerData(uid);
+        const playerData = await fetchPlayerData(uid);
+        if (playerData) { // Only add if data was fetched successfully
           const flattenedData = flattenObject(playerData);
           batchData.push({
             uid: playerData.uid,
             date: currentDate,
             ...flattenedData
           });
-        } catch (error) {
-          console.error(`Failed to fetch data for UID ${uid}:`, JSON.stringify(error, null, 2));
         }
       }
 
@@ -129,6 +135,8 @@ async function main() {
         } else {
           console.log(`Batch upsert succeeded:`, data.length);
         }
+      } else {
+        console.log('No valid data in batch, skipping upsert');
       }
     }
 
