@@ -8,7 +8,7 @@ console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
 console.log('Supabase Key:', supabaseKey ? 'Set (hidden)' : 'Not set');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Axios with longer timeout
+// Axios with timeout
 const axiosInstance = axios.create({ timeout: 60000 }); // 60 seconds timeout
 
 // Helper to flatten nested objects
@@ -24,10 +24,10 @@ function flattenObject(obj, parent = '', result = {}) {
   return result;
 }
 
-// Helper to determine SQL type
+// Helper to determine SQL type (all numbers as FLOAT)
 function getSqlType(value) {
   if (typeof value === 'number') {
-    return Number.isInteger(value) ? 'BIGINT' : 'FLOAT';
+    return 'FLOAT'; // Use FLOAT for all numbers
   } else if (typeof value === 'boolean') {
     return 'BOOLEAN';
   } else {
@@ -82,7 +82,7 @@ async function fetchPlayerData(uid) {
       message: error.message,
       code: error.code,
     }, null, 2));
-    return null; // Return null to skip this UID
+    return null; // Skip this UID
   }
 }
 
@@ -102,7 +102,7 @@ async function main() {
     console.log('Total UIDs to process:', uids.length);
 
     // Step 2: Fetch and insert player data in batches
-    const batchSize = 50; // Reduced to 50
+    const batchSize = 50;
     for (let i = 0; i < uids.length; i += batchSize) {
       const batchUids = uids.slice(i, i + batchSize);
       console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(uids.length / batchSize)} (${batchUids.length} UIDs)`);
@@ -110,7 +110,7 @@ async function main() {
       const batchData = [];
       for (const uid of batchUids) {
         const playerData = await fetchPlayerData(uid);
-        if (playerData) { // Only add if data was fetched successfully
+        if (playerData) {
           const flattenedData = flattenObject(playerData);
           batchData.push({
             uid: playerData.uid,
@@ -121,7 +121,6 @@ async function main() {
       }
 
       if (batchData.length > 0) {
-        // Ensure schema includes all columns for this batch
         await ensureSchemaForBatch('wbtsdb', batchData);
 
         console.log(`Upserting ${batchData.length} records...`);
