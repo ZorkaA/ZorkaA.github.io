@@ -35,8 +35,8 @@ function getSqlType(value) {
   }
 }
 
-// Dynamically update table schema
-async function updateTableSchema(tableName, sampleData) {
+// Dynamically update table schema with multiple samples
+async function updateTableSchema(tableName, sampleDatas) {
   console.log(`Fetching existing columns for ${tableName}...`);
   const { data: columns, error } = await supabase.rpc('get_table_columns', { table_name: tableName });
   if (error) {
@@ -46,10 +46,14 @@ async function updateTableSchema(tableName, sampleData) {
   console.log('Existing columns:', columns.map(col => col.col_name));
 
   const existingColumns = new Set(columns.map(col => col.col_name));
-  const flattenedData = flattenObject(sampleData);
-  console.log('New columns to check:', Object.keys(flattenedData).length);
+  let allFields = {};
+  sampleDatas.forEach(sampleData => {
+    const flattenedData = flattenObject(sampleData);
+    Object.assign(allFields, flattenedData);
+  });
+  console.log('New columns to check:', Object.keys(allFields).length);
 
-  for (const [key, value] of Object.entries(flattenedData)) {
+  for (const [key, value] of Object.entries(allFields)) {
     if (!existingColumns.has(key)) {
       const sqlType = getSqlType(value);
       const query = `ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS "${key}" ${sqlType};`;
@@ -64,6 +68,10 @@ async function updateTableSchema(tableName, sampleData) {
     }
   }
 
+  // Wait for schema cache to refresh
+  console.log('Waiting 10 seconds for schema cache to refresh...');
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
   // Verify schema update
   console.log('Verifying schema update...');
   const { data: updatedColumns, error: verifyError } = await supabase.rpc('get_table_columns', { table_name: tableName });
@@ -72,6 +80,7 @@ async function updateTableSchema(tableName, sampleData) {
     throw verifyError;
   }
   console.log('Updated columns:', updatedColumns.map(col => col.col_name));
+  return new Set(updatedColumns.map(col => col.col_name));
 }
 
 async function fetchPlayerData(uid) {
@@ -79,12 +88,8 @@ async function fetchPlayerData(uid) {
   return response.data;
 }
 
-async function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function main() {
-  const currentDate = new Date().toISOString().split('T')[0];
+  const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   try {
     // Step 1: Fetch UIDs from the uids table
     console.log('Fetching UIDs from Supabase...');
@@ -98,14 +103,24 @@ async function main() {
     const uids = uidsData.map(row => row.uid);
     console.log('Total UIDs to process:', uids.length);
 
-    // Step 2: Fetch sample player data and update schema
+    // Step 2: Fetch sample player data for schema update (first 5 UIDs)
     if (uids.length > 0) {
-      const sampleUid = uids[0];
-      console.log(`Fetching sample data for UID ${sampleUid}...`);
-      const sampleData = await fetchPlayerData(sampleUid);
-      await updateTableSchema('wbtsdb', sampleData);
-      console.log('Waiting 5 seconds for schema cache to refresh...');
-      await delay(5000); // 5-second delay
+      const sampleUids = uids.slice(0, Math.min(5, uids.length));
+      console.log(`Fetching sample data for UIDs: ${sampleUids.join(', ')}...`);
+      const sampleDatas = [];
+      for (const uid of sampleUids) {
+        try {
+          const data = await fetchPlayerData(uid);
+          sampleDatas.push(data);
+        } catch (error) {
+          console.error(`Failed to fetch sample data for UID ${uid}:`, JSON.stringify(error, null, 2));
+        }
+      }
+      if (sampleDatas.length === 0) {
+        console.log('No sample data retrieved, skipping processing');
+        return;
+      }
+      await updateTableSchema('wbtsdb', sampleDatas);
     } else {
       console.log('No UIDs found, skipping processing');
       return;
