@@ -27,7 +27,7 @@ function flattenObject(obj, parent = '', result = {}) {
 // Helper to determine SQL type (all numbers as FLOAT)
 function getSqlType(value) {
   if (typeof value === 'number') {
-    return 'FLOAT'; // Use FLOAT for all numbers
+    return 'FLOAT';
   } else if (typeof value === 'boolean') {
     return 'BOOLEAN';
   } else {
@@ -86,19 +86,32 @@ async function fetchPlayerData(uid) {
   }
 }
 
+async function fetchAllUids() {
+  const allUids = [];
+  let page = 0;
+  const pageSize = 1000; // Supabase default limit
+  while (true) {
+    const { data, error } = await supabase
+      .from('uids')
+      .select('uid')
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+    if (error) {
+      console.error('Failed to fetch UIDs:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+    allUids.push(...data.map(row => row.uid));
+    if (data.length < pageSize) break; // No more pages
+    page++;
+  }
+  return allUids;
+}
+
 async function main() {
   const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   try {
-    // Step 1: Fetch UIDs from the uids table
+    // Step 1: Fetch all UIDs from the uids table
     console.log('Fetching UIDs from Supabase...');
-    const { data: uidsData, error: uidsError } = await supabase
-      .from('uids')
-      .select('uid');
-    if (uidsError) {
-      console.error('Failed to fetch UIDs:', JSON.stringify(uidsError, null, 2));
-      throw uidsError;
-    }
-    const uids = uidsData.map(row => row.uid);
+    const uids = await fetchAllUids();
     console.log('Total UIDs to process:', uids.length);
 
     // Step 2: Fetch and insert player data in batches
