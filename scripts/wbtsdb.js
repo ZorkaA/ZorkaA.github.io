@@ -135,4 +135,15 @@ async function main() {
           console.log(`Batch upsert succeeded:`, data.length);
         }
       } else {
-        console.log
+        console.log('No valid data in batch, skipping upsert');
+      }
+    }
+
+    console.log('All player stats inserted successfully');
+  } catch (error) {
+    console.error('Main process failed:', JSON.stringify(error, null, 2));
+    throw error;
+  }
+}
+
+main().catch(error => console.error('Script failed:', JSON.stringify(error, null, 2)));
