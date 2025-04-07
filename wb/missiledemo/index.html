@@ -5,10 +5,26 @@
     <style>
         body { margin: 0; display: flex; font-family: Arial, sans-serif; }
         #container { display: flex; flex-direction: column; align-items: center; }
-        #controls { padding: 20px; }
+        #controls { padding: 20px; width: 300px; }
         canvas { border: 1px solid black; }
-        .slider-container { margin: 10px 0; }
-        button { padding: 5px 10px; margin: 5px 0; }
+        .slider-container { 
+            margin: 10px 0; 
+            display: flex; 
+            align-items: center; 
+        }
+        .slider-container label { 
+            width: 150px; 
+            text-align: left; 
+        }
+        .slider-container input[type="range"] { 
+            width: 100px; 
+            margin-left: 10px; 
+        }
+        button { 
+            padding: 5px 10px; 
+            margin: 5px 0; 
+            width: 100%; 
+        }
         #stats { padding: 10px; background: #f0f0f0; width: 800px; text-align: center; }
     </style>
 </head>
@@ -63,7 +79,9 @@
             <input type="range" id="gciRadius" min="0" max="300" value="200">
         </div>
         <button id="toggleBtn">Start</button>
-        <button id="resetBtn">Reset Jet</button><br>
+        <button id="resetBtn">Reset Jet</button>
+        <button id="resetSlidersBtn">Reset Sliders</button>
+        <button id="randomizeSlidersBtn">Randomize Sliders</button>
         <label><input type="checkbox" id="trackLines" checked> Show Tracking Lines</label>
     </div>
 
@@ -72,6 +90,8 @@
         const ctx = canvas.getContext('2d');
         const toggleBtn = document.getElementById('toggleBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const resetSlidersBtn = document.getElementById('resetSlidersBtn');
+        const randomizeSlidersBtn = document.getElementById('randomizeSlidersBtn');
         const trackLinesCheckbox = document.getElementById('trackLines');
         const stats = {
             launched: document.getElementById('launched'),
@@ -116,24 +136,29 @@
         let mouseY = canvas.height/2;
         let statsData = { launched: 0, evaded: 0, hits: 0 };
         let qPressed = false;
+        let flareSide = 'right'; // For sequential flare dropping
 
-        // Update slider displays
-        controls.missileFreq.oninput = () => document.getElementById('freqVal').textContent = controls.missileFreq.value;
-        controls.missileSpeed.oninput = () => document.getElementById('missileSpeedVal').textContent = controls.missileSpeed.value;
+        // Update slider displays and apply changes
+        function updateSliderDisplay(slider, displayId) {
+            document.getElementById(displayId).textContent = slider.value;
+        }
+
+        controls.missileFreq.oninput = () => updateSliderDisplay(controls.missileFreq, 'freqVal');
+        controls.missileSpeed.oninput = () => updateSliderDisplay(controls.missileSpeed, 'missileSpeedVal');
         controls.jetSpeed.oninput = () => {
-            document.getElementById('jetSpeedVal').textContent = controls.jetSpeed.value;
+            updateSliderDisplay(controls.jetSpeed, 'jetSpeedVal');
             jet.speed = parseInt(controls.jetSpeed.value);
         };
-        controls.flareFreq.oninput = () => document.getElementById('flareFreqVal').textContent = controls.flareFreq.value;
-        controls.foolRate.oninput = () => document.getElementById('foolRateVal').textContent = controls.foolRate.value;
+        controls.flareFreq.oninput = () => updateSliderDisplay(controls.flareFreq, 'flareFreqVal');
+        controls.foolRate.oninput = () => updateSliderDisplay(controls.foolRate, 'foolRateVal');
         controls.jetMaxG.oninput = () => {
-            document.getElementById('jetGVal').textContent = controls.jetMaxG.value;
+            updateSliderDisplay(controls.jetMaxG, 'jetGVal');
             jet.maxG = parseInt(controls.jetMaxG.value);
         };
-        controls.missileMaxG.oninput = () => document.getElementById('missileGVal').textContent = controls.missileMaxG.value;
-        controls.seekerAngle.oninput = () => document.getElementById('seekerAngleVal').textContent = controls.seekerAngle.value;
-        controls.coneLength.oninput = () => document.getElementById('coneLengthVal').textContent = controls.coneLength.value;
-        controls.gciRadius.oninput = () => document.getElementById('gciRadiusVal').textContent = controls.gciRadius.value;
+        controls.missileMaxG.oninput = () => updateSliderDisplay(controls.missileMaxG, 'missileGVal');
+        controls.seekerAngle.oninput = () => updateSliderDisplay(controls.seekerAngle, 'seekerAngleVal');
+        controls.coneLength.oninput = () => updateSliderDisplay(controls.coneLength, 'coneLengthVal');
+        controls.gciRadius.oninput = () => updateSliderDisplay(controls.gciRadius, 'gciRadiusVal');
 
         // Mouse movement
         canvas.addEventListener('mousemove', (e) => {
@@ -157,8 +182,57 @@
             jet.prevAngle = 0;
         });
 
-        // Flare deployment with hold
+        // Reset sliders to initial values
+        resetSlidersBtn.addEventListener('click', () => {
+            controls.missileFreq.value = 5;
+            controls.missileSpeed.value = 200;
+            controls.jetSpeed.value = 150;
+            controls.flareFreq.value = 0.5;
+            controls.foolRate.value = 50;
+            controls.jetMaxG.value = 9;
+            controls.missileMaxG.value = 25;
+            controls.seekerAngle.value = 60;
+            controls.coneLength.value = 50;
+            controls.gciRadius.value = 200;
+            jet.speed = 150;
+            jet.maxG = 9;
+            Object.keys(controls).forEach(key => controls[key].oninput());
+        });
+
+        // Randomize sliders
+        randomizeSlidersBtn.addEventListener('click', () => {
+            controls.missileFreq.value = Math.floor(Math.random() * (10 - 1 + 1)) + 1;
+            controls.missileSpeed.value = Math.floor(Math.random() * (500 - 100 + 1)) + 100;
+            controls.jetSpeed.value = Math.floor(Math.random() * (300 - 50 + 1)) + 50;
+            controls.flareFreq.value = (Math.random() * (2 - 0.1) + 0.1).toFixed(1);
+            controls.foolRate.value = Math.floor(Math.random() * (100 - 5 + 1)) + 5;
+            controls.jetMaxG.value = Math.floor(Math.random() * (15 - 5 + 1)) + 5;
+            controls.missileMaxG.value = Math.floor(Math.random() * (40 - 10 + 1)) + 10;
+            controls.seekerAngle.value = Math.floor(Math.random() * (120 - 15 + 1)) + 15;
+            controls.coneLength.value = Math.floor(Math.random() * (100 - 20 + 1)) + 20;
+            controls.gciRadius.value = Math.floor(Math.random() * (300 - 0 + 1));
+            jet.speed = parseInt(controls.jetSpeed.value);
+            jet.maxG = parseInt(controls.jetMaxG.value);
+            Object.keys(controls).forEach(key => controls[key].oninput());
+        });
+
+        // Ctrl+D for defaults
         document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'd') {
+                controls.missileFreq.value = 1;
+                controls.missileSpeed.value = 300;
+                controls.jetSpeed.value = 50;
+                controls.flareFreq.value = 0.5;
+                controls.foolRate.value = 50;
+                controls.jetMaxG.value = 15;
+                controls.missileMaxG.value = 40;
+                controls.seekerAngle.value = 60;
+                controls.coneLength.value = 60;
+                controls.gciRadius.value = 100;
+                jet.speed = 50;
+                jet.maxG = 15;
+                Object.keys(controls).forEach(key => controls[key].oninput());
+            }
             if (e.key === 'q' || e.key === 'Q') qPressed = true;
         });
         document.addEventListener('keyup', (e) => {
@@ -172,7 +246,7 @@
                 this.speed = parseInt(controls.missileSpeed.value);
                 this.bodyWidth = 4;
                 this.bodyHeight = 12;
-                this.coneOffset = 6; // Fixed offset from body center to cone base
+                this.coneOffset = 6;
                 this.distanceTraveled = 0;
                 this.maxDistance = Math.random() * (800 - 500) + 500;
                 this.angle = Math.atan2(jet.y - y, jet.x - x);
@@ -233,14 +307,14 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
 
-                // Draw missile body (vertical, no rotation)
+                // Draw missile body (vertical)
                 ctx.fillStyle = 'red';
                 ctx.fillRect(-this.bodyWidth/2, -this.bodyHeight/2, this.bodyWidth, this.bodyHeight);
 
-                // Draw seeker cone (rotated and offset forward)
+                // Draw seeker cone (rotated and offset)
                 ctx.save();
                 ctx.rotate(this.angle);
-                const coneX = this.coneOffset; // Offset forward along angle
+                const coneX = this.coneOffset;
                 const coneY = 0;
                 const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
                 const coneLength = parseInt(controls.coneLength.value);
@@ -255,7 +329,7 @@
                 ctx.fill();
                 ctx.restore();
 
-                // G-force arrow (drawn relative to body)
+                // G-force arrow
                 const turnRate = Math.abs(this.angle - this.prevAngle) / dt;
                 const gForce = Math.min(Math.max((this.speed * turnRate) / 9.81, 1), this.maxG);
                 const arrowLength = ((gForce - 1) / (this.maxG - 1)) * 50;
@@ -273,7 +347,6 @@
 
                 ctx.restore();
 
-                // Tracking line
                 if (trackLinesCheckbox.checked) {
                     ctx.beginPath();
                     ctx.moveTo(this.x, this.y);
@@ -311,31 +384,10 @@
             }
         }
 
-        class Explosion {
-            constructor(x, y, isJetHit = false) {
-                this.x = x;
-                this.y = y;
-                this.radius = 10;
-                this.lifespan = 0.3;
-                this.isJetHit = isJetHit;
-            }
-
-            update(dt) {
-                this.lifespan -= dt;
-            }
-
-            draw() {
-                ctx.fillStyle = this.isJetHit ? 'red' : 'orange';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
         function checkCollisions() {
             missiles.forEach((missile, mIndex) => {
                 const jetDist = Math.sqrt((missile.x - jet.x) ** 2 + (missile.y - jet.y) ** 2);
-                if (jetDist < jet.radius + missile.bodyHeight/2) { // Use bodyHeight for collision
+                if (jetDist < jet.radius + missile.bodyHeight/2) {
                     explosions.push(new Explosion(missile.x, missile.y, true));
                     missiles.splice(mIndex, 1);
                     statsData.hits++;
@@ -361,7 +413,6 @@
             ctx.fillStyle = '#808080';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Launcher with GCI circle
             ctx.fillStyle = 'black';
             ctx.beginPath();
             ctx.moveTo(launcher.x - 15, launcher.y);
@@ -379,17 +430,13 @@
                 ctx.fill();
             }
 
-            // Jet
             ctx.save();
             ctx.translate(jet.x, jet.y);
             ctx.rotate(jet.angle);
-
             ctx.fillStyle = 'green';
             ctx.beginPath();
             ctx.arc(0, 0, jet.radius, 0, Math.PI * 2);
             ctx.fill();
-
-            // Jet G-force arrow
             const jetTurnRate = Math.abs(jet.angle - jet.prevAngle) / dt;
             const jetGForce = Math.min(Math.max((jet.speed * jetTurnRate) / 9.81, 1), jet.maxG);
             const jetArrowLength = ((jetGForce - 1) / (jet.maxG - 1)) * 50;
@@ -406,7 +453,6 @@
             }
             ctx.restore();
 
-            // GCI tracking lines
             const jetDist = Math.sqrt((jet.x - launcher.x) ** 2 + (jet.y - launcher.y) ** 2);
             if (jetDist <= gciRadius && gciRadius > 0) {
                 ctx.beginPath();
@@ -414,7 +460,9 @@
                 ctx.lineTo(jet.x, jet.y);
                 ctx.setLineDash([5, 5]);
                 ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                ctx.lineWidth = 2; // Thicker for GCI-to-jet
                 ctx.stroke();
+                ctx.lineWidth = 1; // Reset
                 ctx.setLineDash([]);
 
                 missiles.forEach(missile => {
@@ -440,7 +488,6 @@
         function update(dt) {
             if (!isRunning) return;
 
-            // Jet movement
             const dx = mouseX - jet.x;
             const dy = mouseY - jet.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -459,21 +506,18 @@
                 jet.prevAngle = jet.angle;
             }
 
-            // Missile launch
             const currentTime = performance.now();
             if (currentTime - lastMissileTime > controls.missileFreq.value * 1000) {
                 missiles.push(new Missile(launcher.x, launcher.y));
                 lastMissileTime = currentTime;
             }
 
-            // Flare launch while Q held
             if (qPressed && currentTime - lastFlareTime > controls.flareFreq.value * 1000) {
-                flares.push(new Flare(jet.x - 10, jet.y));
-                flares.push(new Flare(jet.x + 10, jet.y));
+                flares.push(new Flare(jet.x + (flareSide === 'right' ? 10 : -10), jet.y));
+                flareSide = flareSide === 'right' ? 'left' : 'right';
                 lastFlareTime = currentTime;
             }
 
-            // Update missiles
             missiles = missiles.filter(m => {
                 if (m.y > 0 && m.y < canvas.height && m.x > 0 && m.x < canvas.width && m.distanceTraveled < m.maxDistance) {
                     return true;
@@ -488,16 +532,34 @@
                 if (missile.isFooled && missile.target instanceof Flare) missile.target.lockedBy = missile;
             });
 
-            // Update flares
             flares = flares.filter(f => f.lifespan > 0 || f.lockedBy);
             flares.forEach(flare => flare.update(dt));
 
-            // Update explosions
             explosions = explosions.filter(e => e.lifespan > 0);
             explosions.forEach(explosion => explosion.update(dt));
 
-            // Check collisions
             checkCollisions();
+        }
+
+        class Explosion {
+            constructor(x, y, isJetHit = false) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.lifespan = 0.3;
+                this.isJetHit = isJetHit;
+            }
+
+            update(dt) {
+                this.lifespan -= dt;
+            }
+
+            draw() {
+                ctx.fillStyle = this.isJetHit ? 'red' : 'orange';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         function animate(timestamp = 0) {
@@ -511,7 +573,6 @@
             requestAnimationFrame(animate);
         }
 
-        // Initial draw
         drawScene();
     </script>
 </body>
