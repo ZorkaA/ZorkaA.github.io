@@ -170,8 +170,9 @@
                 this.x = x;
                 this.y = y;
                 this.speed = parseInt(controls.missileSpeed.value);
-                this.width = 12;
-                this.height = 4;
+                this.bodyWidth = 4;
+                this.bodyHeight = 12;
+                this.coneOffset = 6; // Fixed offset from body center to cone base
                 this.distanceTraveled = 0;
                 this.maxDistance = Math.random() * (800 - 500) + 500;
                 this.angle = Math.atan2(jet.y - y, jet.x - x);
@@ -231,13 +232,30 @@
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
 
-                // Missile body (vertical)
+                // Draw missile body (vertical, no rotation)
                 ctx.fillStyle = 'red';
-                ctx.fillRect(-this.height/2, -this.width/2, this.height, this.width);
+                ctx.fillRect(-this.bodyWidth/2, -this.bodyHeight/2, this.bodyWidth, this.bodyHeight);
 
-                // G-force arrow
+                // Draw seeker cone (rotated and offset forward)
+                ctx.save();
+                ctx.rotate(this.angle);
+                const coneX = this.coneOffset; // Offset forward along angle
+                const coneY = 0;
+                const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
+                const coneLength = parseInt(controls.coneLength.value);
+                ctx.beginPath();
+                ctx.moveTo(coneX, coneY);
+                ctx.arc(coneX, coneY, coneLength, -seekerAngle/2, seekerAngle/2);
+                ctx.closePath();
+                const gradient = ctx.createRadialGradient(coneX, coneY, 0, coneX, coneY, coneLength);
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.restore();
+
+                // G-force arrow (drawn relative to body)
                 const turnRate = Math.abs(this.angle - this.prevAngle) / dt;
                 const gForce = Math.min(Math.max((this.speed * turnRate) / 9.81, 1), this.maxG);
                 const arrowLength = ((gForce - 1) / (this.maxG - 1)) * 50;
@@ -252,19 +270,6 @@
                     ctx.font = '10px Arial';
                     ctx.fillText(gForce.toFixed(1), turnDir * (arrowLength + 5), 5);
                 }
-
-                // Seeker cone (forward)
-                const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
-                const coneLength = parseInt(controls.coneLength.value);
-                ctx.beginPath();
-                ctx.moveTo(0, -this.width/2);
-                ctx.arc(0, -this.width/2, coneLength, -seekerAngle/2, seekerAngle/2);
-                ctx.closePath();
-                const gradient = ctx.createRadialGradient(0, -this.width/2, 0, 0, -this.width/2, coneLength);
-                gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
-                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-                ctx.fillStyle = gradient;
-                ctx.fill();
 
                 ctx.restore();
 
@@ -330,7 +335,7 @@
         function checkCollisions() {
             missiles.forEach((missile, mIndex) => {
                 const jetDist = Math.sqrt((missile.x - jet.x) ** 2 + (missile.y - jet.y) ** 2);
-                if (jetDist < jet.radius + missile.height/2) {
+                if (jetDist < jet.radius + missile.bodyHeight/2) { // Use bodyHeight for collision
                     explosions.push(new Explosion(missile.x, missile.y, true));
                     missiles.splice(mIndex, 1);
                     statsData.hits++;
@@ -340,7 +345,7 @@
 
                 flares.forEach((flare, fIndex) => {
                     const flareDist = Math.sqrt((missile.x - flare.x) ** 2 + (missile.y - flare.y) ** 2);
-                    if (flareDist < flare.radius + missile.height/2) {
+                    if (flareDist < flare.radius + missile.bodyHeight/2) {
                         explosions.push(new Explosion(missile.x, missile.y));
                         missiles.splice(mIndex, 1);
                         flares.splice(fIndex, 1);
@@ -408,7 +413,7 @@
                 ctx.moveTo(launcher.x, launcher.y);
                 ctx.lineTo(jet.x, jet.y);
                 ctx.setLineDash([5, 5]);
-                ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)'; // Yellow
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
                 ctx.stroke();
                 ctx.setLineDash([]);
 
