@@ -93,7 +93,7 @@
 
         // Game objects
         const launcher = { x: canvas.width/2, y: canvas.height - 20 };
-        let jet = { x: canvas.width/2, y: canvas.height/2, speed: 150, radius: 5, angle: 0, maxG: 9 };
+        let jet = { x: canvas.width/2, y: canvas.height/2, speed: 150, radius: 5, angle: 0, maxG: 9, lastAngle: 0 };
         let missiles = [];
         let flares = [];
         let explosions = [];
@@ -112,7 +112,7 @@
             document.getElementById('jetSpeedVal').textContent = controls.jetSpeed.value;
             jet.speed = parseInt(controls.jetSpeed.value);
         };
-        controls.flareFreq.oninput = () => document.getElementById('flareFreqVal').textContent = controls.flareFreq.value;
+        controls.flCuántFreq.oninput = () => document.getElementById('flareFreqVal').textContent = controls.flareFreq.value;
         controls.foolRate.oninput = () => document.getElementById('foolRateVal').textContent = controls.foolRate.value;
         controls.jetMaxG.oninput = () => {
             document.getElementById('jetGVal').textContent = controls.jetMaxG.value;
@@ -140,6 +140,7 @@
             jet.x = canvas.width/2;
             jet.y = canvas.height/2;
             jet.angle = 0;
+            jet.lastAngle = 0;
         });
 
         // Flare deployment with hold
@@ -159,7 +160,8 @@
                 this.height = 12;
                 this.distanceTraveled = 0;
                 this.maxDistance = Math.random() * (800 - 500) + 500;
-                this.angle = Math.atan2(jet.y - y, jet.x - x); // Initial aim at jet
+                this.angle = Math.atan2(jet.y - y, jet.x - x);
+                this.lastAngle = this.angle;
                 this.maxG = parseInt(controls.missileMaxG.value);
                 this.target = jet;
                 this.lastTargetPos = { x: jet.x, y: jet.y };
@@ -178,7 +180,6 @@
                 let targetY = this.target.y;
                 const dx = targetX - this.x;
                 const dy = targetY - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
                 const targetAngle = Math.atan2(dy, dx);
                 const angleDiff = Math.atan2(Math.sin(targetAngle - this.angle), Math.cos(targetAngle - this.angle));
 
@@ -197,6 +198,7 @@
                 desiredTurn = Math.atan2(Math.sin(desiredTurn), Math.cos(desiredTurn));
                 const turnRate = Math.min(Math.abs(maxTurnRate), Math.abs(desiredTurn / dt)) * Math.sign(desiredTurn);
 
+                this.lastAngle = this.angle;
                 this.angle += turnRate * dt;
                 this.x += Math.cos(this.angle) * this.speed * dt;
                 this.y += Math.sin(this.angle) * this.speed * dt;
@@ -206,32 +208,34 @@
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle + Math.PI/2);
+                ctx.rotate(this.angle);
                 ctx.fillStyle = 'red';
                 ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
 
                 // G-force arrow
-                const turnRate = Math.abs(this.speed / ((this.speed * this.speed) / (this.maxG * 9.81)));
-                const gForce = (this.speed * turnRate) / 9.81;
-                const arrowLength = Math.min(gForce * 5, 50);
-                const turnDir = Math.sign(Math.atan2(this.target.y - this.y, this.target.x - this.x) - this.angle);
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(-turnDir * arrowLength, 0);
-                ctx.strokeStyle = 'white';
-                ctx.stroke();
-                ctx.fillStyle = 'white';
-                ctx.font = '10px Arial';
-                ctx.fillText(gForce.toFixed(1), -turnDir * (arrowLength + 5), 5);
+                const turnRate = Math.abs(this.angle - this.lastAngle) / (dt || 0.016); // Default dt if undefined
+                const gForce = Math.max(1, (this.speed * turnRate) / 9.81); // Minimum 1G
+                const arrowLength = Math.min(((gForce - 1) / (this.maxG - 1)) * 50, 50); // Scale from 1G to maxG
+                const turnDir = Math.sign(this.angle - this.lastAngle) || 1;
+                if (arrowLength > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(-turnDir * arrowLength, 0);
+                    ctx.strokeStyle = 'white';
+                    ctx.stroke();
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(gForce.toFixed(1), -turnDir * (arrowLength + 5), 5);
+                }
 
                 // Seeker cone (facing forward)
                 const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
                 const coneLength = 50;
                 ctx.beginPath();
-                ctx.moveTo(0, -this.height/2);
-                ctx.arc(0, -this.height/2, coneLength, -seekerAngle/2, seekerAngle/2);
+                ctx.moveTo(this.width/2, 0); // Start at missile tip
+                ctx.arc(this.width/2, 0, coneLength, -seekerAngle/2, seekerAngle/2);
                 ctx.closePath();
-                const gradient = ctx.createRadialGradient(0, -this.height/2, 0, 0, -this.height/2, coneLength);
+                const gradient = ctx.createRadialGradient(this.width/2, 0, 0, this.width/2, 0, coneLength);
                 gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
                 gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
                 ctx.fillStyle = gradient;
@@ -336,25 +340,27 @@
 
             ctx.save();
             ctx.translate(jet.x, jet.y);
-            ctx.rotate(jet.angle + Math.PI/2);
+            ctx.rotate(jet.angle);
             ctx.fillStyle = 'green';
             ctx.beginPath();
             ctx.arc(0, 0, jet.radius, 0, Math.PI * 2);
             ctx.fill();
 
             // Jet G-force arrow
-            const jetTurnRate = Math.abs(jet.speed / ((jet.speed * jet.speed) / (jet.maxG * 9.81)));
-            const jetGForce = (jet.speed * jetTurnRate) / 9.81;
-            const jetArrowLength = Math.min(jetGForce * 5, 50);
-            const jetTurnDir = Math.sign(Math.atan2(mouseY - jet.y, mouseX - jet.x) - jet.angle);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(-jetTurnDir * jetArrowLength, 0);
-            ctx.strokeStyle = 'white';
-            ctx.stroke();
-            ctx.fillStyle = 'white';
-            ctx.font = '10px Arial';
-            ctx.fillText(jetGForce.toFixed(1), -jetTurnDir * (jetArrowLength + 5), 5);
+            const jetTurnRate = Math.abs(jet.angle - jet.lastAngle) / (dt || 0.016);
+            const jetGForce = Math.max(1, (jet.speed * jetTurnRate) / 9.81);
+            const jetArrowLength = Math.min(((jetGForce - 1) / (jet.maxG - 1)) * 50, 50);
+            const jetTurnDir = Math.sign(jet.angle - jet.lastAngle) || 1;
+            if (jetArrowLength > 0) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-jetTurnDir * jetArrowLength, 0);
+                ctx.strokeStyle = 'white';
+                ctx.stroke();
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText(jetGForce.toFixed(1), -jetTurnDir * (jetArrowLength + 5), 5);
+            }
             ctx.restore();
 
             missiles.forEach(missile => missile.draw());
@@ -362,8 +368,10 @@
             explosions.forEach(explosion => explosion.draw());
         }
 
-        function update(dt) {
+        let dt = 0; // Global dt to avoid undefined issues
+        function update(dtLocal) {
             if (!isRunning) return;
+            dt = dtLocal; // Store dt globally
 
             // Jet movement
             const dx = mouseX - jet.x;
@@ -376,6 +384,7 @@
                 desiredTurn = Math.atan2(Math.sin(desiredTurn), Math.cos(desiredTurn));
                 const turnRate = Math.min(Math.abs(maxTurnRate), Math.abs(desiredTurn / dt)) * Math.sign(desiredTurn);
 
+                jet.lastAngle = jet.angle;
                 jet.angle += turnRate * dt;
                 jet.x += Math.cos(jet.angle) * jet.speed * dt;
                 jet.y += Math.sin(jet.angle) * jet.speed * dt;
