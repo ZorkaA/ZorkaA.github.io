@@ -93,7 +93,7 @@
 
         // Game objects
         const launcher = { x: canvas.width/2, y: canvas.height - 20 };
-        let jet = { x: canvas.width/2, y: canvas.height/2, speed: 150, radius: 5, angle: 0, maxG: 9, lastAngle: 0 };
+        let jet = { x: canvas.width/2, y: canvas.height/2, speed: 150, radius: 5, angle: 0, maxG: 9 };
         let missiles = [];
         let flares = [];
         let explosions = [];
@@ -112,7 +112,7 @@
             document.getElementById('jetSpeedVal').textContent = controls.jetSpeed.value;
             jet.speed = parseInt(controls.jetSpeed.value);
         };
-        controls.flCuántFreq.oninput = () => document.getElementById('flareFreqVal').textContent = controls.flareFreq.value;
+        controls.flareFreq.oninput = () => document.getElementById('flareFreqVal').textContent = controls.flareFreq.value;
         controls.foolRate.oninput = () => document.getElementById('foolRateVal').textContent = controls.foolRate.value;
         controls.jetMaxG.oninput = () => {
             document.getElementById('jetGVal').textContent = controls.jetMaxG.value;
@@ -140,7 +140,6 @@
             jet.x = canvas.width/2;
             jet.y = canvas.height/2;
             jet.angle = 0;
-            jet.lastAngle = 0;
         });
 
         // Flare deployment with hold
@@ -161,7 +160,6 @@
                 this.distanceTraveled = 0;
                 this.maxDistance = Math.random() * (800 - 500) + 500;
                 this.angle = Math.atan2(jet.y - y, jet.x - x);
-                this.lastAngle = this.angle;
                 this.maxG = parseInt(controls.missileMaxG.value);
                 this.target = jet;
                 this.lastTargetPos = { x: jet.x, y: jet.y };
@@ -180,11 +178,12 @@
                 let targetY = this.target.y;
                 const dx = targetX - this.x;
                 const dy = targetY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 const targetAngle = Math.atan2(dy, dx);
                 const angleDiff = Math.atan2(Math.sin(targetAngle - this.angle), Math.cos(targetAngle - this.angle));
 
                 // Check if target is within seeker cone
-                if (Math.abs(angleDiff) > seekerAngle / 2) {
+                if (Math.abs(angleDiff) > seekerAngle / 2 || (this.isFooled && this.target.lifespan <= 0 && !this.target.lockedBy)) {
                     targetX = this.lastTargetPos.x;
                     targetY = this.lastTargetPos.y;
                 } else {
@@ -198,7 +197,6 @@
                 desiredTurn = Math.atan2(Math.sin(desiredTurn), Math.cos(desiredTurn));
                 const turnRate = Math.min(Math.abs(maxTurnRate), Math.abs(desiredTurn / dt)) * Math.sign(desiredTurn);
 
-                this.lastAngle = this.angle;
                 this.angle += turnRate * dt;
                 this.x += Math.cos(this.angle) * this.speed * dt;
                 this.y += Math.sin(this.angle) * this.speed * dt;
@@ -209,15 +207,17 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
+
+                // Missile body
                 ctx.fillStyle = 'red';
                 ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
 
                 // G-force arrow
-                const turnRate = Math.abs(this.angle - this.lastAngle) / (dt || 0.016); // Default dt if undefined
-                const gForce = Math.max(1, (this.speed * turnRate) / 9.81); // Minimum 1G
-                const arrowLength = Math.min(((gForce - 1) / (this.maxG - 1)) * 50, 50); // Scale from 1G to maxG
-                const turnDir = Math.sign(this.angle - this.lastAngle) || 1;
-                if (arrowLength > 0) {
+                const turnRate = Math.abs(this.angle - Math.atan2(this.target.y - this.y, this.target.x - this.x)) / dt;
+                const gForce = Math.max((this.speed * turnRate) / 9.81, 1); // Minimum 1 G
+                const arrowLength = Math.min(((gForce - 1) / (this.maxG - 1)) * 50, 50); // Scale from 0 to 50
+                if (gForce > 1) {
+                    const turnDir = Math.sign(Math.atan2(this.target.y - this.y, this.target.x - this.x) - this.angle);
                     ctx.beginPath();
                     ctx.moveTo(0, 0);
                     ctx.lineTo(-turnDir * arrowLength, 0);
@@ -232,10 +232,10 @@
                 const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
                 const coneLength = 50;
                 ctx.beginPath();
-                ctx.moveTo(this.width/2, 0); // Start at missile tip
-                ctx.arc(this.width/2, 0, coneLength, -seekerAngle/2, seekerAngle/2);
+                ctx.moveTo(0, -this.height/2); // Start at nose
+                ctx.arc(0, -this.height/2, coneLength, -seekerAngle/2, seekerAngle/2);
                 ctx.closePath();
-                const gradient = ctx.createRadialGradient(this.width/2, 0, 0, this.width/2, 0, coneLength);
+                const gradient = ctx.createRadialGradient(0, -this.height/2, 0, 0, -this.height/2, coneLength);
                 gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
                 gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
                 ctx.fillStyle = gradient;
@@ -341,17 +341,18 @@
             ctx.save();
             ctx.translate(jet.x, jet.y);
             ctx.rotate(jet.angle);
+
             ctx.fillStyle = 'green';
             ctx.beginPath();
             ctx.arc(0, 0, jet.radius, 0, Math.PI * 2);
             ctx.fill();
 
             // Jet G-force arrow
-            const jetTurnRate = Math.abs(jet.angle - jet.lastAngle) / (dt || 0.016);
-            const jetGForce = Math.max(1, (jet.speed * jetTurnRate) / 9.81);
+            const jetTurnRate = Math.abs(jet.angle - Math.atan2(mouseY - jet.y, mouseX - jet.x)) / (dt || 0.016); // Fallback dt
+            const jetGForce = Math.max((jet.speed * jetTurnRate) / 9.81, 1);
             const jetArrowLength = Math.min(((jetGForce - 1) / (jet.maxG - 1)) * 50, 50);
-            const jetTurnDir = Math.sign(jet.angle - jet.lastAngle) || 1;
-            if (jetArrowLength > 0) {
+            if (jetGForce > 1) {
+                const jetTurnDir = Math.sign(Math.atan2(mouseY - jet.y, mouseX - jet.x) - jet.angle);
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
                 ctx.lineTo(-jetTurnDir * jetArrowLength, 0);
@@ -368,10 +369,10 @@
             explosions.forEach(explosion => explosion.draw());
         }
 
-        let dt = 0; // Global dt to avoid undefined issues
-        function update(dtLocal) {
+        let lastTime = 0;
+        let dt = 0.016; // Initial dt estimate
+        function update(dt) {
             if (!isRunning) return;
-            dt = dtLocal; // Store dt globally
 
             // Jet movement
             const dx = mouseX - jet.x;
@@ -384,7 +385,6 @@
                 desiredTurn = Math.atan2(Math.sin(desiredTurn), Math.cos(desiredTurn));
                 const turnRate = Math.min(Math.abs(maxTurnRate), Math.abs(desiredTurn / dt)) * Math.sign(desiredTurn);
 
-                jet.lastAngle = jet.angle;
                 jet.angle += turnRate * dt;
                 jet.x += Math.cos(jet.angle) * jet.speed * dt;
                 jet.y += Math.sin(jet.angle) * jet.speed * dt;
@@ -431,11 +431,10 @@
             checkCollisions();
         }
 
-        let lastTime = 0;
         function animate(timestamp = 0) {
             if (!isRunning) return;
 
-            const dt = (timestamp - lastTime) / 1000;
+            dt = (timestamp - lastTime) / 1000 || 0.016; // Update dt, fallback to 60fps
             lastTime = timestamp;
 
             update(dt);
