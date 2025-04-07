@@ -54,6 +54,10 @@
             <label>Seeker Angle (°): <span id="seekerAngleVal">60</span></label>
             <input type="range" id="seekerAngle" min="15" max="120" value="60">
         </div>
+        <div class="slider-container">
+            <label>Seeker Cone Length (px): <span id="coneLengthVal">50</span></label>
+            <input type="range" id="coneLength" min="20" max="100" value="50">
+        </div>
         <button id="toggleBtn">Start</button>
         <button id="resetBtn">Reset Jet</button><br>
         <label><input type="checkbox" id="trackLines" checked> Show Tracking Lines</label>
@@ -78,7 +82,8 @@
             foolRate: document.getElementById('foolRate'),
             jetMaxG: document.getElementById('jetMaxG'),
             missileMaxG: document.getElementById('missileMaxG'),
-            seekerAngle: document.getElementById('seekerAngle')
+            seekerAngle: document.getElementById('seekerAngle'),
+            coneLength: document.getElementById('coneLength')
         };
 
         // Display initial slider values
@@ -90,6 +95,7 @@
         document.getElementById('jetGVal').textContent = controls.jetMaxG.value;
         document.getElementById('missileGVal').textContent = controls.missileMaxG.value;
         document.getElementById('seekerAngleVal').textContent = controls.seekerAngle.value;
+        document.getElementById('coneLengthVal').textContent = controls.coneLength.value;
 
         // Game objects
         const launcher = { x: canvas.width/2, y: canvas.height - 20 };
@@ -120,6 +126,7 @@
         };
         controls.missileMaxG.oninput = () => document.getElementById('missileGVal').textContent = controls.missileMaxG.value;
         controls.seekerAngle.oninput = () => document.getElementById('seekerAngleVal').textContent = controls.seekerAngle.value;
+        controls.coneLength.oninput = () => document.getElementById('coneLengthVal').textContent = controls.coneLength.value;
 
         // Mouse movement
         canvas.addEventListener('mousemove', (e) => {
@@ -182,7 +189,6 @@
                 const targetAngle = Math.atan2(dy, dx);
                 const angleDiff = Math.atan2(Math.sin(targetAngle - this.angle), Math.cos(targetAngle - this.angle));
 
-                // Check if target is within seeker cone
                 if (Math.abs(angleDiff) > seekerAngle / 2 || (this.isFooled && this.target.lifespan <= 0 && !this.target.lockedBy)) {
                     targetX = this.lastTargetPos.x;
                     targetY = this.lastTargetPos.y;
@@ -190,7 +196,6 @@
                     this.lastTargetPos = { x: targetX, y: targetY };
                 }
 
-                // Calculate turn rate with G limit
                 const minTurnRadius = (this.speed * this.speed) / (this.maxG * 9.81);
                 const maxTurnRate = this.speed / minTurnRadius;
                 let desiredTurn = Math.atan2(targetY - this.y, targetX - this.x) - this.angle;
@@ -208,14 +213,14 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
 
-                // Missile body
+                // Missile body (vertical)
                 ctx.fillStyle = 'red';
                 ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
 
                 // G-force arrow
-                const turnRate = Math.abs(this.angle - Math.atan2(this.target.y - this.y, this.target.x - this.x)) / dt;
-                const gForce = Math.max((this.speed * turnRate) / 9.81, 1); // Minimum 1 G
-                const arrowLength = Math.min(((gForce - 1) / (this.maxG - 1)) * 50, 50); // Scale from 0 to 50
+                const turnRate = Math.min(Math.abs(this.angle - Math.atan2(this.target.y - this.y, this.target.x - this.x)) / dt, this.speed / ((this.speed * this.speed) / (this.maxG * 9.81)));
+                const gForce = Math.min(Math.max((this.speed * turnRate) / 9.81, 1), this.maxG);
+                const arrowLength = ((gForce - 1) / (this.maxG - 1)) * 50;
                 if (gForce > 1) {
                     const turnDir = Math.sign(Math.atan2(this.target.y - this.y, this.target.x - this.x) - this.angle);
                     ctx.beginPath();
@@ -228,11 +233,11 @@
                     ctx.fillText(gForce.toFixed(1), -turnDir * (arrowLength + 5), 5);
                 }
 
-                // Seeker cone (facing forward)
+                // Seeker cone
                 const seekerAngle = parseInt(controls.seekerAngle.value) * Math.PI / 180;
-                const coneLength = 50;
+                const coneLength = parseInt(controls.coneLength.value);
                 ctx.beginPath();
-                ctx.moveTo(0, -this.height/2); // Start at nose
+                ctx.moveTo(0, -this.height/2);
                 ctx.arc(0, -this.height/2, coneLength, -seekerAngle/2, seekerAngle/2);
                 ctx.closePath();
                 const gradient = ctx.createRadialGradient(0, -this.height/2, 0, 0, -this.height/2, coneLength);
@@ -348,9 +353,9 @@
             ctx.fill();
 
             // Jet G-force arrow
-            const jetTurnRate = Math.abs(jet.angle - Math.atan2(mouseY - jet.y, mouseX - jet.x)) / (dt || 0.016); // Fallback dt
-            const jetGForce = Math.max((jet.speed * jetTurnRate) / 9.81, 1);
-            const jetArrowLength = Math.min(((jetGForce - 1) / (jet.maxG - 1)) * 50, 50);
+            const jetTurnRate = Math.min(Math.abs(jet.angle - Math.atan2(mouseY - jet.y, mouseX - jet.x)) / dt, jet.speed / ((jet.speed * jet.speed) / (jet.maxG * 9.81)));
+            const jetGForce = Math.min(Math.max((jet.speed * jetTurnRate) / 9.81, 1), jet.maxG);
+            const jetArrowLength = ((jetGForce - 1) / (jet.maxG - 1)) * 50;
             if (jetGForce > 1) {
                 const jetTurnDir = Math.sign(Math.atan2(mouseY - jet.y, mouseX - jet.x) - jet.angle);
                 ctx.beginPath();
@@ -370,7 +375,7 @@
         }
 
         let lastTime = 0;
-        let dt = 0.016; // Initial dt estimate
+        let dt = 0.016;
         function update(dt) {
             if (!isRunning) return;
 
@@ -434,7 +439,7 @@
         function animate(timestamp = 0) {
             if (!isRunning) return;
 
-            dt = (timestamp - lastTime) / 1000 || 0.016; // Update dt, fallback to 60fps
+            dt = (timestamp - lastTime) / 1000 || 0.016;
             lastTime = timestamp;
 
             update(dt);
