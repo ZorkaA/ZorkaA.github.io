@@ -82,7 +82,7 @@
         // Supabase setup (replace placeholders with GH Secrets in your environment)
         const supabaseUrl = 'YOUR_SUPABASE_URL'; // e.g., process.env.SUPABASE_URL
         const supabaseKey = 'YOUR_SUPABASE_SERVICE_KEY'; // e.g., process.env.SUPABASE_SERVICE_KEY
-        const supabase = createClient(supabaseUrl, supabaseKey); // Fixed typo
+        const supabase = Supabase.createClient(supabaseUrl, supabaseKey); // Fixed to use global Supabase
 
         // Fetch column names from wbtsdb (excluding uid and date)
         async function fetchColumns(retries = 2) {
