@@ -21,28 +21,23 @@
             width: 100%;
             height: 400px;
         }
-        .variable-input {
+        .metric-input {
             display: flex;
             align-items: center;
             margin-bottom: 10px;
         }
-        .variable-input select {
+        .metric-input select {
             flex: 1;
             margin-right: 10px;
             padding: 5px;
         }
-        .variable-input input[type="color"] {
+        .metric-input input[type="color"] {
             margin-right: 10px;
             cursor: pointer;
         }
-        .time-period-toggle {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .time-period-toggle button.active {
-            background-color: #3b82f6;
-            color: white;
+        .error-message {
+            color: red;
+            display: none;
         }
     </style>
 </head>
@@ -50,80 +45,76 @@
     <div class="container">
         <h1 class="text-2xl font-bold mb-4">Historical Stats Viewer</h1>
 
-        <!-- UID or Name Input -->
-        <div class="mb-4 flex gap-4">
-            <input type="text" id="uid-input" placeholder="Enter UID" class="border p-2 flex-1">
-            <input type="text" id="name-input" placeholder="Search by Name" class="border p-2 flex-1">
+        <!-- UID and Name Search -->
+        <div class="mb-4">
+            <input id="uid-input" type="text" placeholder="Enter UID" class="border p-2 mr-2">
+            <input id="name-input" type="text" placeholder="Search by name" class="border p-2 mr-2">
             <button onclick="searchByName()" class="bg-blue-500 text-white p-2 rounded">Search</button>
+            <ul id="search-results" class="mt-2"></ul>
         </div>
 
         <!-- Time Period Toggle -->
-        <div class="time-period-toggle">
-            <button onclick="setTimePeriod('7d')" class="bg-gray-200 p-2 rounded active">7 Days</button>
-            <button onclick="setTimePeriod('30d')" class="bg-gray-200 p-2 rounded">30 Days</button>
+        <div class="mb-4">
+            <label class="mr-2">Time Period:</label>
+            <button onclick="setTimePeriod('7d')" class="bg-gray-200 p-2 mr-2 rounded">7 Days</button>
+            <button onclick="setTimePeriod('30d')" class="bg-gray-200 p-2 mr-2 rounded">30 Days</button>
             <button onclick="setTimePeriod('max')" class="bg-gray-200 p-2 rounded">Max</button>
         </div>
 
-        <!-- Variable Inputs -->
-        <div id="variable-inputs" class="mb-4">
-            <!-- Dynamically generated dropdowns will go here -->
+        <!-- Metric Selection -->
+        <div id="metric-inputs" class="mb-4">
+            <!-- Dynamically generated metric dropdowns -->
         </div>
-        <button onclick="addVariableInput()" class="bg-green-500 text-white p-2 rounded mb-4">+</button>
-        <button onclick="fetchComparisonData()" class="bg-blue-500 text-white p-2 rounded mb-4">Compare</button>
-        <p id="error-message" class="text-red-500 hidden">Invalid UID or no data available.</p>
+        <button onclick="addMetricInput()" class="bg-green-500 text-white p-2 rounded mb-4">Add Metric</button>
+        <button onclick="fetchComparisonData()" class="bg-blue-500 text-white p-2 rounded">Show Stats</button>
+        <p id="error-message" class="error-message">No data available for the selected UID or metrics.</p>
 
         <!-- Chart -->
-        <div id="chart"></div>
+        <svg id="chart"></svg>
     </div>
 
     <script>
-        // Supabase setup (replace with your credentials)
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Supabase setup (replace placeholders with GH Secrets in your environment)
+        const supabaseUrl = 'YOUR_SUPABASE_URL'; // e.g., from process.env.SUPABASE_URL
+        const supabaseKey = 'YOUR_SUPABASE_SERVICE_KEY'; // e.g., from process.env.SUPABASE_SERVICE_KEY
+        const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
         let columns = [];
         let selectedUid = '';
-        let timePeriod = '7d';
+        let timePeriod = 'max';
 
-        // Initialize with two variable inputs
-        window.onload = async () => {
-            await fetchColumns();
-            for (let i = 0; i < 2; i++) addVariableInput();
-        };
-
-        // Fetch column names from wbtsdb
+        // Fetch column names from wbtsdb (excluding uid and date)
         async function fetchColumns() {
             const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'wbtsdb' });
             if (error) {
                 console.error('Error fetching columns:', error);
-                document.getElementById('error-message').textContent = 'Failed to load columns.';
-                document.getElementById('error-message').classList.remove('hidden');
                 return;
             }
-            columns = data.map(col => col.col_name).filter(col => col !== 'uid' && col !== 'date');
-            console.log('Columns:', columns);
+            columns = data
+                .map(col => col.col_name)
+                .filter(col => col !== 'uid' && col !== 'date')
+                .sort();
+            addMetricInput(); // Add initial dropdown
         }
 
-        // Add a new variable input dropdown
-        function addVariableInput() {
-            if (document.getElementById('variable-inputs').children.length >= 10) {
-                alert('Maximum 10 variables allowed.');
+        // Add a metric dropdown
+        function addMetricInput() {
+            if (document.querySelectorAll('.metric-input').length >= 10) {
+                alert('Maximum 10 metrics allowed.');
                 return;
             }
-
             const div = document.createElement('div');
-            div.className = 'variable-input';
+            div.className = 'metric-input flex items-center';
 
             const select = document.createElement('select');
-            select.innerHTML = '<option value="">Select Stat</option>' + 
+            select.innerHTML = '<option value="">Select Metric</option>' + 
                 columns.map(col => `<option value="${col}">${col}</option>`).join('');
             select.className = 'border p-2';
 
             const colorPicker = document.createElement('input');
             colorPicker.type = 'color';
             colorPicker.value = generateRandomColor();
-            colorPicker.className = 'w-10 h-10';
+            colorPicker.className = 'cursor-pointer';
 
             const removeButton = document.createElement('button');
             removeButton.textContent = 'Remove';
@@ -133,8 +124,7 @@
             div.appendChild(select);
             div.appendChild(colorPicker);
             div.appendChild(removeButton);
-
-            document.getElementById('variable-inputs').appendChild(div);
+            document.getElementById('metric-inputs').appendChild(div);
         }
 
         // Generate random color
@@ -145,107 +135,153 @@
         // Search by name
         async function searchByName() {
             const query = document.getElementById('name-input').value.trim();
-            if (!query) return alert('Please enter a name.');
-
+            if (!query) return alert('Please enter a name to search.');
             try {
                 const response = await axios.get(`https://wbapi.wbpjs.com/players/searchByName?query=${encodeURIComponent(query)}`);
                 const results = response.data;
+                const ul = document.getElementById('search-results');
+                ul.innerHTML = '';
                 if (results.length === 0) {
-                    alert('No players found.');
+                    ul.innerHTML = '<li>No players found.</li>';
                     return;
                 }
-                // Take the first result
-                document.getElementById('uid-input').value = results[0].uid;
-                selectedUid = results[0].uid;
+                results.forEach(player => {
+                    const li = document.createElement('li');
+                    li.textContent = `${player.nick} (UID: ${player.uid})`;
+                    li.className = 'cursor-pointer hover:bg-gray-100 p-1';
+                    li.onclick = () => {
+                        document.getElementById('uid-input').value = player.uid;
+                        selectedUid = player.uid;
+                        ul.innerHTML = '';
+                    };
+                    ul.appendChild(li);
+                });
             } catch (error) {
-                console.error('Search error:', error);
-                alert('Failed to search for player.');
+                console.error('Error searching by name:', error);
+                alert('Failed to search players.');
             }
         }
 
         // Set time period
         function setTimePeriod(period) {
             timePeriod = period;
-            document.querySelectorAll('.time-period-toggle button').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent.includes(period.toUpperCase()));
+            document.querySelectorAll('.mb-4 button').forEach(btn => {
+                btn.className = btn.textContent.includes(period.toUpperCase()) ? 
+                    'bg-blue-500 text-white p-2 mr-2 rounded' : 
+                    'bg-gray-200 p-2 mr-2 rounded';
             });
+            fetchComparisonData();
         }
 
         // Fetch and update chart data
         async function fetchComparisonData() {
-            const uid = document.getElementById('uid-input').value.trim();
-            if (!uid) return alert('Please enter or search for a UID.');
-
-            selectedUid = uid;
-            const inputs = Array.from(document.getElementById('variable-inputs').children).map(div => ({
-                column: div.querySelector('select').value,
-                color: div.querySelector('input[type="color"]').value
-            })).filter(input => input.column);
-
-            if (inputs.length === 0) return alert('Please select at least one stat.');
-            if (inputs.length > 10) return alert('Maximum 10 stats allowed.');
-
-            let query = supabase.from('wbtsdb').select(`date, ${inputs.map(i => i.column).join(', ')}`).eq('uid', uid);
-            if (timePeriod === '7d') {
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                query = query.gte('date', sevenDaysAgo.toISOString().split('T')[0]);
-            } else if (timePeriod === '30d') {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                query = query.gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
-            }
-
-            const { data, error } = await query.order('date', { ascending: true });
-            if (error || !data || data.length === 0) {
-                document.getElementById('error-message').classList.remove('hidden');
+            if (!selectedUid) {
+                alert('Please enter a UID or select one from search results.');
                 return;
             }
 
-            document.getElementById('error-message').classList.add('hidden');
-            updateChart(data, inputs);
+            const metrics = Array.from(document.querySelectorAll('.metric-input select'))
+                .map(select => ({
+                    column: select.value,
+                    color: select.nextElementSibling.value
+                }))
+                .filter(metric => metric.column);
+
+            if (metrics.length === 0) {
+                alert('Please select at least one metric.');
+                return;
+            }
+
+            // Calculate date range
+            const now = new Date();
+            let startDate;
+            if (timePeriod === '7d') {
+                startDate = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
+            } else if (timePeriod === '30d') {
+                startDate = new Date(now.setDate(now.getDate() - 30)).toISOString().split('T')[0];
+            } else {
+                startDate = '2000-01-01'; // Arbitrary early date for 'max'
+            }
+
+            // Fetch data from Supabase
+            const { data, error } = await supabase
+                .from('wbtsdb')
+                .select(`date, ${metrics.map(m => m.column).join(', ')}`)
+                .eq('uid', selectedUid)
+                .gte('date', startDate)
+                .order('date', { ascending: true });
+
+            if (error || !data || data.length === 0) {
+                document.getElementById('error-message').style.display = 'block';
+                console.error('Error fetching data:', error);
+                return;
+            }
+
+            document.getElementById('error-message').style.display = 'none';
+            updateChart(data, metrics);
         }
 
         // Update D3 chart
-        function updateChart(data, inputs) {
-            // Clear previous chart
+        function updateChart(data, metrics) {
+            // Clear existing chart
             d3.select('#chart').selectAll('*').remove();
 
-            // Set dimensions
-            const margin = { top: 20, right: 30, bottom: 50, left: 60 };
+            // Set up dimensions
+            const margin = { top: 20, right: 80, bottom: 50, left: 50 };
             const width = 1200 - margin.left - margin.right;
             const height = 400 - margin.top - margin.bottom;
 
             // Create SVG
             const svg = d3.select('#chart')
-                .append('svg')
                 .attr('width', width + margin.left + margin.right)
                 .attr('height', height + margin.top + margin.bottom)
                 .append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
-            // Parse dates
+            // Parse dates and prepare data
             const parseDate = d3.timeParse('%Y-%m-%d');
-            data.forEach(d => d.date = parseDate(d.date));
+            data.forEach(d => {
+                d.date = parseDate(d.date);
+            });
 
-            // Scales
+            // Set scales
             const x = d3.scaleTime()
                 .domain(d3.extent(data, d => d.date))
                 .range([0, width]);
 
-            const allValues = inputs.flatMap(input => data.map(d => d[input.column]).filter(v => v != null));
+            const yValues = metrics.flatMap(metric => 
+                data.map(d => d[metric.column]).filter(v => v !== null)
+            );
             const y = d3.scaleLinear()
-                .domain([0, d3.max(allValues) * 1.1])
+                .domain([0, d3.max(yValues) * 1.1 || 1])
                 .range([height, 0])
                 .nice();
 
-            // Axes
+            // Define line generator
+            const line = d3.line()
+                .x(d => x(d.date))
+                .y(d => y(d[metric]))
+                .defined(d => d[metric] !== null);
+
+            // Draw lines
+            metrics.forEach(metric => {
+                svg.append('path')
+                    .datum(data)
+                    .attr('fill', 'none')
+                    .attr('stroke', metric.color)
+                    .attr('stroke-width', 2)
+                    .attr('d', line.x(d => x(d.date)).y(d => y(d[metric.column])));
+            });
+
+            // Add axes
             svg.append('g')
                 .attr('transform', `translate(0,${height})`)
                 .call(d3.axisBottom(x))
                 .selectAll('text')
-                .attr('transform', 'rotate(-45)')
-                .style('text-anchor', 'end');
+                .style('text-anchor', 'end')
+                .attr('dx', '-.8em')
+                .attr('dy', '.15em')
+                .attr('transform', 'rotate(-45)');
 
             svg.append('g')
                 .call(d3.axisLeft(y))
@@ -254,52 +290,29 @@
                 .attr('transform', 'rotate(-90)')
                 .attr('y', -40)
                 .attr('x', -height / 2)
-                .style('text-anchor', 'middle')
-                .text('Stat Value');
+                .attr('text-anchor', 'middle')
+                .text('Value');
 
-            // Line generator
-            const line = d3.line()
-                .x(d => x(d.date))
-                .y(d => y(d[input.column]))
-                .defined(d => d[input.column] != null);
-
-            // Plot lines
-            inputs.forEach(input => {
-                svg.append('path')
-                    .datum(data)
-                    .attr('fill', 'none')
-                    .attr('stroke', input.color)
-                    .attr('stroke-width', 2)
-                    .attr('d', line);
+            // Add legend
+            const legend = svg.append('g')
+                .attr('transform', `translate(${width - 70}, 0)`);
+            metrics.forEach((metric, i) => {
+                legend.append('rect')
+                    .attr('x', 0)
+                    .attr('y', i * 20)
+                    .attr('width', 15)
+                    .attr('height', 15)
+                    .attr('fill', metric.color);
+                legend.append('text')
+                    .attr('x', 20)
+                    .attr('y', i * 20 + 12)
+                    .text(metric.column)
+                    .style('font-size', '12px');
             });
-
-            // Add tooltip
-            const tooltip = d3.select('body').append('div')
-                .style('position', 'absolute')
-                .style('background', '#fff')
-                .style('padding', '5px')
-                .style('border', '1px solid #ccc')
-                .style('display', 'none');
-
-            svg.selectAll('dot')
-                .data(data)
-                .enter()
-                .append('circle')
-                .attr('r', 4)
-                .attr('cx', d => x(d.date))
-                .attr('cy', d => y(d[inputs[0].column]))
-                .attr('fill', inputs[0].color)
-                .on('mouseover', (event, d) => {
-                    tooltip.style('display', 'block')
-                        .html(`Date: ${d3.timeFormat('%Y-%m-%d')(d.date)}<br>` + 
-                              inputs.map(input => `${input.column}: ${d[input.column]}`).join('<br>'));
-                })
-                .on('mousemove', event => {
-                    tooltip.style('left', (event.pageX + 10) + 'px')
-                        .style('top', (event.pageY - 10) + 'px');
-                })
-                .on('mouseout', () => tooltip.style('display', 'none'));
         }
+
+        // Initialize
+        fetchColumns();
     </script>
 </body>
 </html>
