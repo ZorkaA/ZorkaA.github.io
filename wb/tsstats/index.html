@@ -56,7 +56,7 @@
         <!-- Time Period Toggle -->
         <div class="mb-4">
             <label class="mr-2">Time Period:</label>
-            <button onclick="setTimePeriod('7d')" class="bg-gray-200 p-2 mr-2 rounded">7 Days</button>
+            <button onclick="setTimePeriod('7d')" class="bg-blue-500 text-white p-2 mr-2 rounded">7 Days</button>
             <button onclick="setTimePeriod('30d')" class="bg-gray-200 p-2 mr-2 rounded">30 Days</button>
             <button onclick="setTimePeriod('max')" class="bg-gray-200 p-2 rounded">Max</button>
         </div>
@@ -74,31 +74,43 @@
     </div>
 
     <script>
-        // Supabase setup (replace placeholders with GH Secrets in your environment)
-        const supabaseUrl = 'YOUR_SUPABASE_URL'; // e.g., from process.env.SUPABASE_URL
-        const supabaseKey = 'YOUR_SUPABASE_SERVICE_KEY'; // e.g., from process.env.SUPABASE_SERVICE_KEY
-        const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
-
+        // Initialize global variables
         let columns = [];
         let selectedUid = '';
-        let timePeriod = 'max';
+        let timePeriod = '7d'; // Default to 7 days
+
+        // Supabase setup (replace placeholders with GH Secrets in your environment)
+        const supabaseUrl = 'YOUR_SUPABASE_URL'; // e.g., process.env.SUPABASE_URL
+        const supabaseKey = 'YOUR_SUPABASE_SERVICE_KEY'; // e.g., process.env.SUPABASE_SERVICE_KEY
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey); // Fixed typo
 
         // Fetch column names from wbtsdb (excluding uid and date)
         async function fetchColumns() {
-            const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'wbtsdb' });
-            if (error) {
-                console.error('Error fetching columns:', error);
-                return;
+            try {
+                const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'wbtsdb' });
+                if (error) {
+                    console.error('Error fetching columns:', error);
+                    alert('Failed to load metrics.');
+                    return;
+                }
+                columns = data
+                    .map(col => col.col_name)
+                    .filter(col => col !== 'uid' && col !== 'date')
+                    .sort();
+                console.log('Fetched columns:', columns);
+                addMetricInput(); // Add initial dropdown
+            } catch (error) {
+                console.error('fetchColumns error:', error);
+                alert('Error initializing metrics.');
             }
-            columns = data
-                .map(col => col.col_name)
-                .filter(col => col !== 'uid' && col !== 'date')
-                .sort();
-            addMetricInput(); // Add initial dropdown
         }
 
         // Add a metric dropdown
         function addMetricInput() {
+            if (columns.length === 0) {
+                alert('Metrics not yet loaded. Please wait.');
+                return;
+            }
             if (document.querySelectorAll('.metric-input').length >= 10) {
                 alert('Maximum 10 metrics allowed.');
                 return;
@@ -175,10 +187,12 @@
 
         // Fetch and update chart data
         async function fetchComparisonData() {
-            if (!selectedUid) {
+            const uidInput = document.getElementById('uid-input').value.trim();
+            if (!uidInput && !selectedUid) {
                 alert('Please enter a UID or select one from search results.');
                 return;
             }
+            selectedUid = uidInput || selectedUid;
 
             const metrics = Array.from(document.querySelectorAll('.metric-input select'))
                 .map(select => ({
@@ -204,21 +218,26 @@
             }
 
             // Fetch data from Supabase
-            const { data, error } = await supabase
-                .from('wbtsdb')
-                .select(`date, ${metrics.map(m => m.column).join(', ')}`)
-                .eq('uid', selectedUid)
-                .gte('date', startDate)
-                .order('date', { ascending: true });
+            try {
+                const { data, error } = await supabase
+                    .from('wbtsdb')
+                    .select(`date, ${metrics.map(m => m.column).join(', ')}`)
+                    .eq('uid', selectedUid)
+                    .gte('date', startDate)
+                    .order('date', { ascending: true });
 
-            if (error || !data || data.length === 0) {
-                document.getElementById('error-message').style.display = 'block';
-                console.error('Error fetching data:', error);
-                return;
+                if (error || !data || data.length === 0) {
+                    document.getElementById('error-message').style.display = 'block';
+                    console.error('Error fetching data:', error);
+                    return;
+                }
+
+                document.getElementById('error-message').style.display = 'none';
+                updateChart(data, metrics);
+            } catch (error) {
+                console.error('fetchComparisonData error:', error);
+                alert('Failed to load data.');
             }
-
-            document.getElementById('error-message').style.display = 'none';
-            updateChart(data, metrics);
         }
 
         // Update D3 chart
