@@ -82,26 +82,37 @@
         // Supabase setup (replace placeholders with GH Secrets in your environment)
         const supabaseUrl = 'YOUR_SUPABASE_URL'; // e.g., process.env.SUPABASE_URL
         const supabaseKey = 'YOUR_SUPABASE_SERVICE_KEY'; // e.g., process.env.SUPABASE_SERVICE_KEY
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey); // Fixed typo
+        const supabase = createClient(supabaseUrl, supabaseKey); // Fixed typo
 
         // Fetch column names from wbtsdb (excluding uid and date)
-        async function fetchColumns() {
-            try {
-                const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'wbtsdb' });
-                if (error) {
-                    console.error('Error fetching columns:', error);
-                    alert('Failed to load metrics.');
+        async function fetchColumns(retries = 2) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'wbtsdb' });
+                    if (error) {
+                        console.error(`Attempt ${attempt} - Error fetching columns:`, error);
+                        if (attempt === retries) {
+                            alert('Failed to load metrics after retries.');
+                            return;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+                        continue;
+                    }
+                    columns = data
+                        .map(col => col.col_name)
+                        .filter(col => col !== 'uid' && col !== 'date')
+                        .sort();
+                    console.log('Fetched columns:', columns);
+                    addMetricInput(); // Add initial dropdown
                     return;
+                } catch (error) {
+                    console.error(`Attempt ${attempt} - fetchColumns error:`, error);
+                    if (attempt === retries) {
+                        alert('Error initializing metrics.');
+                        return;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
-                columns = data
-                    .map(col => col.col_name)
-                    .filter(col => col !== 'uid' && col !== 'date')
-                    .sort();
-                console.log('Fetched columns:', columns);
-                addMetricInput(); // Add initial dropdown
-            } catch (error) {
-                console.error('fetchColumns error:', error);
-                alert('Error initializing metrics.');
             }
         }
 
