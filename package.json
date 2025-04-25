@@ -1,13 +1,26 @@
 {
   "name": "squad-stats",
   "version": "1.0.0",
+  "description": "CLI shenanigans",
+  "main": "index.js",
+  "bin": {
+    "wbapi-stats": "./index.js"
+  },
   "scripts": {
     "fetch": "node scripts/fetch_data.js",
     "insert-uids": "node scripts/insert_uids.js",
-    "wbtsdb": "node scripts/wbtsdb.js"
+    "wbtsdb": "node scripts/wbtsdb.js",
+    "stats": "node index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "commander": "^12.1.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZorkaA/squad-stats.git"
   }
 }
