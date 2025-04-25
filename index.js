@@ -32,7 +32,6 @@ async function getPlayerStats(uid) {
 const uid = process.argv[2];
 if (!uid) {
   console.error('Please provide a UID as an argument.');
-  console.error('Example: node index.js 61615f38d142af62453c6a90');
   process.exit(1);
 }
 
