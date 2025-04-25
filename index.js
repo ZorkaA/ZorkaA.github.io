@@ -1,38 +1,41 @@
 #!/usr/bin/env node
 
-const axios = require('axios');
-const { program } = require('commander');
+const fetch = require('node-fetch');
 
-// Define the CLI program
-program
-  .version('1.0.0')
-  .description('Fetch player stats from wbapi.wbpjs.com')
-  .requiredOption('-u, --uid <uid>', 'Player UID to query')
-  .action(async (options) => {
-    const uid = options.uid;
-    const apiUrl = `https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`;
-
-    try {
-      const response = await axios.get(apiUrl);
-      const data = response.data;
-
-      // Calculate total kills and deaths by summing kills_per_weapon and deaths
-      const totalKills = Object.values(data.kills_per_weapon || {}).reduce((sum, val) => sum + val, 0);
-      const totalDeaths = Object.values(data.deaths || {}).reduce((sum, val) => sum + val, 0);
-
-      // Output formatted stats
-      console.log('**********');
-      console.log(`Stats for ${data.nick} (${data.uid}):`);
-      console.log(`Kills: ${totalKills}`);
-      console.log(`Deaths: ${totalDeaths}`);
-      console.log(`Level: ${data.level}`);
-      console.log(`XP: ${data.xp}`);
-      console.log('**********');
-    } catch (error) {
-      console.error('Error fetching player stats:', error.message);
-      process.exit(1);
+async function getPlayerStats(uid) {
+  try {
+    const response = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  });
+    const data = await response.json();
 
-// Parse command-line arguments
-program.parse(process.argv);
+    // Calculate total kills by summing all kills_per_weapon values
+    const totalKills = Object.values(data.kills_per_weapon || {}).reduce((sum, val) => sum + val, 0);
+
+    // Calculate total deaths by summing all deaths values
+    const totalDeaths = Object.values(data.deaths || {}).reduce((sum, val) => sum + val, 0);
+
+    // Format the output
+    console.log('**********');
+    console.log(`Stats for ${data.nick} (${uid}):`);
+    console.log(`Kills: ${totalKills}`);
+    console.log(`Deaths: ${totalDeaths}`);
+    console.log(`Level: ${data.level}`);
+    console.log(`XP: ${data.xp}`);
+    console.log('**********');
+  } catch (error) {
+    console.error('Error fetching player stats:', error.message);
+    process.exit(1);
+  }
+}
+
+// Get UID from command-line arguments
+const uid = process.argv[2];
+if (!uid) {
+  console.error('Please provide a UID as an argument.');
+  process.exit(1);
+}
+
+// Run the function
+getPlayerStats(uid);
