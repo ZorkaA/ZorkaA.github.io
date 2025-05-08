@@ -56,9 +56,13 @@
         <!-- Time Period Toggle -->
         <div class="mb-4">
             <label class="mr-2">Time Period:</label>
-            <button onclick="setTimePeriod('7d')" class="bg-blue-500 text-white p-2 mr-2 rounded">7 Days</button>
-            <button onclick="setTimePeriod('30d')" class="bg-gray-200 p-2 mr-2 rounded">30 Days</button>
-            <button onclick="setTimePeriod('max')" class="bg-gray-200 p-2 rounded">Max</button>
+            <button onclick="setTimePeriod('7d')" class="time-period-btn bg-blue-500 text-white p-2 mr-2 rounded">7 Days</button>
+            <button onclick="setTimePeriod('30d')" class="time-period-btn bg-gray-200 p-2 mr-2 rounded">30 Days</button>
+            <button onclick="setTimePeriod('max')" class="time-period-btn bg-gray-200 p-2 rounded">Max</button>
+            
+            <label class="ml-4 mr-2">Y-Axis Scale:</label>
+            <button onclick="setYScale('linear')" class="y-scale-btn bg-blue-500 text-white p-2 mr-2 rounded">Linear</button>
+            <button onclick="setYScale('log')" class="y-scale-btn bg-gray-200 p-2 rounded">Logarithmic</button>
         </div>
 
         <!-- Metric Selection -->
@@ -71,57 +75,28 @@
 
         <!-- Chart -->
         <svg id="chart"></svg>
+        
+        <!-- Timeline for non-numeric metrics -->
+        <div id="timeline" class="mt-8"></div>
+
+        <!-- Tooltip -->
+        <div id="tooltip" class="hidden absolute bg-white border border-gray-300 rounded p-2 shadow-lg text-sm"></div>
     </div>
 
     <script>
         // Initialize global variables
-        let columns = [];
+        let columns = ['level', 'xp', 'squad', 'killsELO', 'gamesELO', 'number_of_jumps', 'time', 'jointime'];
         let selectedUid = '';
         let timePeriod = '7d'; // Default to 7 days
+        let yScaleType = 'linear'; // Default to linear scale
 
-        // Supabase setup (replace placeholders with GH Secrets in your environment)
-        const supabaseUrl = 'YOUR_SUPABASE_URL'; // e.g., process.env.SUPABASE_URL
-        const supabaseKey = 'YOUR_SUPABASE_SERVICE_KEY'; // e.g., process.env.SUPABASE_SERVICE_KEY
-        const supabase = Supabase.createClient(supabaseUrl, supabaseKey); // Fixed to use global Supabase
-
-        // Fetch column names from wbtsdb (excluding uid and date)
-        async function fetchColumns(retries = 2) {
-            for (let attempt = 1; attempt <= retries; attempt++) {
-                try {
-                    const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'wbtsdb' });
-                    if (error) {
-                        console.error(`Attempt ${attempt} - Error fetching columns:`, error);
-                        if (attempt === retries) {
-                            alert('Failed to load metrics after retries.');
-                            return;
-                        }
-                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
-                        continue;
-                    }
-                    columns = data
-                        .map(col => col.col_name)
-                        .filter(col => col !== 'uid' && col !== 'date')
-                        .sort();
-                    console.log('Fetched columns:', columns);
-                    addMetricInput(); // Add initial dropdown
-                    return;
-                } catch (error) {
-                    console.error(`Attempt ${attempt} - fetchColumns error:`, error);
-                    if (attempt === retries) {
-                        alert('Error initializing metrics.');
-                        return;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-            }
-        }
+        // Supabase setup
+        const supabaseUrl = 'https://vviprqpyqkwjdtqqlmde.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aXBycXB5cWt3amR0cXFsbWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAxMDUxNzMsImV4cCI6MjA0NTY4MTE3M30.ftmjdgdJPjOox5SpxDNoQ3kJX0vfbhRoEHharLcI4eM';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         // Add a metric dropdown
         function addMetricInput() {
-            if (columns.length === 0) {
-                alert('Metrics not yet loaded. Please wait.');
-                return;
-            }
             if (document.querySelectorAll('.metric-input').length >= 10) {
                 alert('Maximum 10 metrics allowed.');
                 return;
@@ -141,13 +116,21 @@
 
             const removeButton = document.createElement('button');
             removeButton.textContent = 'Remove';
-            removeButton.className = 'bg-red-500 text-white p-2 rounded';
+            removeButton.className = 'remove-btn bg-gray-300 text-gray-700 p-2 rounded transition-all duration-200';
             removeButton.onclick = () => div.remove();
 
             div.appendChild(select);
             div.appendChild(colorPicker);
             div.appendChild(removeButton);
             document.getElementById('metric-inputs').appendChild(div);
+
+            // Add hover event listeners
+            removeButton.addEventListener('mouseover', () => {
+                removeButton.className = 'remove-btn bg-red-500 text-white p-2 rounded transition-all duration-200 hover:scale-105';
+            });
+            removeButton.addEventListener('mouseout', () => {
+                removeButton.className = 'remove-btn bg-gray-300 text-gray-700 p-2 rounded transition-all duration-200';
+            });
         }
 
         // Generate random color
@@ -188,12 +171,30 @@
         // Set time period
         function setTimePeriod(period) {
             timePeriod = period;
-            document.querySelectorAll('.mb-4 button').forEach(btn => {
-                btn.className = btn.textContent.includes(period.toUpperCase()) ? 
-                    'bg-blue-500 text-white p-2 mr-2 rounded' : 
-                    'bg-gray-200 p-2 mr-2 rounded';
+            // Update only time period buttons
+            document.querySelectorAll('.time-period-btn').forEach(btn => {
+                btn.className = btn.textContent.toLowerCase().includes(period) ? 
+                    'time-period-btn bg-blue-500 text-white p-2 mr-2 rounded' : 
+                    'time-period-btn bg-gray-200 p-2 mr-2 rounded';
             });
-            fetchComparisonData();
+            // Only fetch data if we already have a UID
+            if (selectedUid) {
+                fetchComparisonData();
+            }
+        }
+
+        // Set y-axis scale type
+        function setYScale(type) {
+            yScaleType = type;
+            // Update only y-scale buttons
+            document.querySelectorAll('.y-scale-btn').forEach(btn => {
+                btn.className = btn.textContent.toLowerCase().includes(type) ? 
+                    'y-scale-btn bg-blue-500 text-white p-2 mr-2 rounded' : 
+                    'y-scale-btn bg-gray-200 p-2 mr-2 rounded';
+            });
+            if (selectedUid) {
+                fetchComparisonData();
+            }
         }
 
         // Fetch and update chart data
@@ -204,6 +205,13 @@
                 return;
             }
             selectedUid = uidInput || selectedUid;
+            console.log('Selected UID:', selectedUid);
+
+            // Verify UID format
+            if (!/^[0-9a-f]{24}$/.test(selectedUid)) {
+                alert('Invalid UID format. Please enter a valid 24-character hexadecimal UID.');
+                return;
+            }
 
             const metrics = Array.from(document.querySelectorAll('.metric-input select'))
                 .map(select => ({
@@ -216,30 +224,94 @@
                 alert('Please select at least one metric.');
                 return;
             }
+            console.log('Selected metrics:', metrics);
 
             // Calculate date range
             const now = new Date();
             let startDate;
             if (timePeriod === '7d') {
-                startDate = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
+                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             } else if (timePeriod === '30d') {
-                startDate = new Date(now.setDate(now.getDate() - 30)).toISOString().split('T')[0];
+                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             } else {
                 startDate = '2000-01-01'; // Arbitrary early date for 'max'
             }
+            console.log('Date range:', { startDate, timePeriod, now: now.toISOString() });
 
             // Fetch data from Supabase
             try {
-                const { data, error } = await supabase
+                // First try to get any data to verify table access
+                const { data: sampleData, error: sampleError } = await supabaseClient
+                    .from('wbtsdb')
+                    .select('*')
+                    .limit(1);
+
+                if (sampleError) {
+                    console.error('Table access error:', sampleError);
+                    if (sampleError.code === '42P01') {
+                        alert('Error: Table "wbtsdb" does not exist. Please check the table name.');
+                    } else if (sampleError.code === '42501') {
+                        alert('Error: Permission denied. This is likely a Row Level Security (RLS) issue. Please enable RLS policies for the wbtsdb table.');
+                        console.log('RLS Error Details:', sampleError);
+                    } else {
+                        alert('Error accessing database: ' + sampleError.message);
+                    }
+                    return;
+                }
+
+                if (!sampleData || sampleData.length === 0) {
+                    console.log('Table exists but is empty');
+                    alert('The database table is empty. Please check if data has been imported.');
+                    return;
+                }
+
+                console.log('Sample data structure:', Object.keys(sampleData[0]));
+
+                // Now try the actual query
+                const query = supabaseClient
                     .from('wbtsdb')
                     .select(`date, ${metrics.map(m => m.column).join(', ')}`)
                     .eq('uid', selectedUid)
                     .gte('date', startDate)
                     .order('date', { ascending: true });
+                
+                console.log('Query parameters:', {
+                    table: 'wbtsdb',
+                    columns: `date, ${metrics.map(m => m.column).join(', ')}`,
+                    uid: selectedUid,
+                    startDate: startDate
+                });
+                
+                const { data, error } = await query;
 
-                if (error || !data || data.length === 0) {
+                if (error) {
+                    console.error('Supabase error:', error);
+                    if (error.code === 'PGRST116') {
+                        alert('Error: One or more selected columns do not exist in the database.');
+                    } else {
+                        alert('Error fetching data: ' + error.message);
+                    }
                     document.getElementById('error-message').style.display = 'block';
-                    console.error('Error fetching data:', error);
+                    return;
+                }
+
+                console.log('Received data:', data);
+
+                if (!data || data.length === 0) {
+                    document.getElementById('error-message').style.display = 'block';
+                    console.log('No data returned for the query');
+                    // Try to find any data for this UID without date filter
+                    const { data: uidCheck } = await supabaseClient
+                        .from('wbtsdb')
+                        .select('uid')
+                        .eq('uid', selectedUid)
+                        .limit(1);
+                    
+                    if (!uidCheck || uidCheck.length === 0) {
+                        alert('No data found for this UID. Please verify the UID is correct.');
+                    } else {
+                        alert('No data found for the selected time period. Try a different time range.');
+                    }
                     return;
                 }
 
@@ -247,7 +319,7 @@
                 updateChart(data, metrics);
             } catch (error) {
                 console.error('fetchComparisonData error:', error);
-                alert('Failed to load data.');
+                alert('Failed to load data: ' + error.message);
             }
         }
 
@@ -255,6 +327,7 @@
         function updateChart(data, metrics) {
             // Clear existing chart
             d3.select('#chart').selectAll('*').remove();
+            d3.select('#timeline').selectAll('*').remove();
 
             // Set up dimensions
             const margin = { top: 20, right: 80, bottom: 50, left: 50 };
@@ -279,28 +352,93 @@
                 .domain(d3.extent(data, d => d.date))
                 .range([0, width]);
 
-            const yValues = metrics.flatMap(metric => 
+            // Separate numeric and non-numeric metrics
+            const numericMetrics = metrics.filter(m => {
+                const firstValue = data.find(d => d[m.column] !== null)?.[m.column];
+                return typeof firstValue === 'number';
+            });
+            const nonNumericMetrics = metrics.filter(m => {
+                const firstValue = data.find(d => d[m.column] !== null)?.[m.column];
+                return typeof firstValue !== 'number';
+            });
+
+            // Create y scale based on scale type
+            const yValues = numericMetrics.flatMap(metric => 
                 data.map(d => d[metric.column]).filter(v => v !== null)
             );
-            const y = d3.scaleLinear()
-                .domain([0, d3.max(yValues) * 1.1 || 1])
-                .range([height, 0])
-                .nice();
+            const y = yScaleType === 'log' 
+                ? d3.scaleLog()
+                    .domain([d3.min(yValues) || 1, d3.max(yValues) || 1])
+                    .range([height, 0])
+                    .nice()
+                : d3.scaleLinear()
+                    .domain([0, d3.max(yValues) * 1.1 || 1])
+                    .range([height, 0])
+                    .nice();
 
-            // Define line generator
-            const line = d3.line()
-                .x(d => x(d.date))
-                .y(d => y(d[metric]))
-                .defined(d => d[metric] !== null);
+            // Create tooltip
+            const tooltip = d3.select('#tooltip');
 
-            // Draw lines
-            metrics.forEach(metric => {
-                svg.append('path')
+            // Draw lines for numeric metrics
+            numericMetrics.forEach(metric => {
+                const line = d3.line()
+                    .x(d => x(d.date))
+                    .y(d => y(d[metric.column]))
+                    .defined(d => d[metric.column] !== null);
+
+                const path = svg.append('path')
                     .datum(data)
                     .attr('fill', 'none')
                     .attr('stroke', metric.color)
                     .attr('stroke-width', 2)
-                    .attr('d', line.x(d => x(d.date)).y(d => y(d[metric.column])));
+                    .attr('d', line);
+
+                // Add hover effects
+                const hoverArea = svg.append('rect')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .attr('fill', 'none')
+                    .attr('pointer-events', 'all')
+                    .on('mouseout', () => {
+                        tooltip.classed('hidden', true);
+                        svg.selectAll('.hover-dot').remove();
+                    })
+                    .on('mousemove', (event) => {
+                        const [xPos] = d3.pointer(event);
+                        const date = x.invert(xPos);
+                        const bisect = d3.bisector(d => d.date).left;
+                        const index = bisect(data, date, 1);
+                        const d0 = data[index - 1];
+                        const d1 = data[index];
+                        const d = date - d0.date > d1.date - date ? d1 : d0;
+
+                        // Update tooltip
+                        tooltip
+                            .classed('hidden', false)
+                            .style('left', (event.pageX + 10) + 'px')
+                            .style('top', (event.pageY - 10) + 'px')
+                            .html(`
+                                <div>Date: ${d.date.toLocaleDateString()}</div>
+                                ${numericMetrics.map(m => `
+                                    <div style="color: ${m.color}">
+                                        ${m.column}: ${d[m.column]?.toLocaleString() ?? 'N/A'}
+                                    </div>
+                                `).join('')}
+                            `);
+
+                        // Add hover dots
+                        svg.selectAll('.hover-dot').remove();
+                        numericMetrics.forEach(m => {
+                            if (d[m.column] !== null) {
+                                svg.append('circle')
+                                    .attr('class', 'hover-dot')
+                                    .attr('cx', x(d.date))
+                                    .attr('cy', y(d[m.column]))
+                                    .attr('r', 4)
+                                    .attr('fill', m.color);
+                            }
+                        });
+                    });
             });
 
             // Add axes
@@ -339,10 +477,141 @@
                     .text(metric.column)
                     .style('font-size', '12px');
             });
+
+            // Create timeline for non-numeric metrics
+            if (nonNumericMetrics.length > 0) {
+                const timelineSvg = d3.select('#timeline')
+                    .append('svg')
+                    .attr('width', width + margin.left + margin.right)
+                    .attr('height', 200)
+                    .append('g')
+                    .attr('transform', `translate(${margin.left},${margin.top})`); // Removed the extra 100px
+
+                // Get unique values for each non-numeric metric
+                const uniqueValues = {};
+                nonNumericMetrics.forEach(metric => {
+                    uniqueValues[metric.column] = [...new Set(data.map(d => d[metric.column]).filter(v => v !== null))];
+                });
+
+                // Create y scale for timeline
+                const timelineY = d3.scaleBand()
+                    .domain(Object.keys(uniqueValues).flatMap(metric => 
+                        uniqueValues[metric].map(value => `${metric}:${value}`)
+                    ))
+                    .range([0, 150])
+                    .padding(0.1);
+
+                // Create tooltip for timeline
+                const timelineTooltip = d3.select('#timeline')
+                    .append('div')
+                    .attr('class', 'hidden absolute bg-white border border-gray-300 rounded p-2 shadow-lg text-sm')
+                    .style('pointer-events', 'none');
+
+                // Draw timeline
+                nonNumericMetrics.forEach(metric => {
+                    // Get all data points for this metric
+                    const metricData = data
+                        .filter(d => d[metric.column] !== null)
+                        .map(d => ({
+                            date: d.date,
+                            value: d[metric.column]
+                        }));
+
+                    // Draw horizontal lines for each value
+                    uniqueValues[metric.column].forEach(value => {
+                        const valueData = metricData.filter(d => d.value === value);
+                        
+                        // Group consecutive dates
+                        let currentGroup = [];
+                        const groups = [];
+                        
+                        valueData.forEach((point, i) => {
+                            if (i === 0 || point.date - valueData[i-1].date > 24 * 60 * 60 * 1000) {
+                                if (currentGroup.length > 0) {
+                                    groups.push(currentGroup);
+                                }
+                                currentGroup = [point];
+                            } else {
+                                currentGroup.push(point);
+                            }
+                        });
+                        if (currentGroup.length > 0) {
+                            groups.push(currentGroup);
+                        }
+
+                        // Draw lines for each group
+                        groups.forEach(group => {
+                            const line = timelineSvg.append('line')
+                                .attr('x1', x(group[0].date))
+                                .attr('x2', x(group[group.length - 1].date))
+                                .attr('y1', timelineY(`${metric.column}:${value}`))
+                                .attr('y2', timelineY(`${metric.column}:${value}`))
+                                .attr('stroke', metric.color)
+                                .attr('stroke-width', 3)
+                                .style('cursor', 'pointer');
+
+                            // Add hover effects
+                            line.on('mouseover', (event) => {
+                                const [xPos] = d3.pointer(event);
+                                const date = x.invert(xPos);
+                                const bisect = d3.bisector(d => d.date).left;
+                                const index = bisect(group, date, 1);
+                                const d0 = group[index - 1];
+                                const d1 = group[index];
+                                const d = date - d0.date > d1.date - date ? d1 : d0;
+
+                                timelineTooltip
+                                    .classed('hidden', false)
+                                    .style('left', (event.pageX + 10) + 'px')
+                                    .style('top', (event.pageY - 10) + 'px')
+                                    .html(`
+                                        <div>Date: ${d.date.toLocaleDateString()}</div>
+                                        <div style="color: ${metric.color}">
+                                            ${metric.column}: ${d.value}
+                                        </div>
+                                    `);
+                            })
+                            .on('mouseout', () => {
+                                timelineTooltip.classed('hidden', true);
+                            });
+
+                            // Add value labels on the left
+                            if (group === groups[0]) {
+                                timelineSvg.append('text')
+                                    .attr('x', -5)
+                                    .attr('y', timelineY(`${metric.column}:${value}`))
+                                    .attr('text-anchor', 'end')
+                                    .attr('dominant-baseline', 'middle')
+                                    .style('font-size', '12px')
+                                    .text(value);
+                            }
+                        });
+                    });
+
+                    // Add metric label
+                    timelineSvg.append('text')
+                        .attr('x', -5)
+                        .attr('y', -10)
+                        .attr('text-anchor', 'end')
+                        .style('font-size', '12px')
+                        .style('font-weight', 'bold')
+                        .text(metric.column);
+                });
+
+                // Add x-axis to timeline
+                timelineSvg.append('g')
+                    .attr('transform', `translate(0,${150})`)
+                    .call(d3.axisBottom(x))
+                    .selectAll('text')
+                    .style('text-anchor', 'end')
+                    .attr('dx', '-.8em')
+                    .attr('dy', '.15em')
+                    .attr('transform', 'rotate(-45)');
+            }
         }
 
         // Initialize
-        fetchColumns();
+        addMetricInput(); // Add initial dropdown
     </script>
 </body>
 </html>
