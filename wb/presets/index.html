@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presets (WIP!!!)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        label, select, input {
+            margin: 5px;
+        }
+        .icon-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .icon-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        img {
+            width: 40px;
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Preset Viewer</h1>
+    <label for="token">Enter Token:</label>
+    <input type="text" id="token" placeholder="Enter token">
+    
+    <label for="entity">Select Entity:</label>
+    <select id="entity">
+        <option value="v00">v00</option>
+        <option value="v01">v01</option>
+        <option value="v02">v02</option>
+        <option value="v10">v10</option>
+        <option value="v11">v11</option>
+        <option value="v12">v12</option>
+        <option value="v13">v13</option>
+        <option value="v20">v20</option>
+        <option value="v21">v21</option>
+        <option value="v22">v22</option>
+    </select>
+    
+    <button onclick="getPresetData()">Fetch Preset</button>
+
+    <div id="preset-output"></div>
+
+    <script>
+        async function getPresetData() {
+            const token = document.getElementById('token').value;
+            const entity = document.getElementById('entity').value;
+
+            if (!token) {
+                alert('Please enter a token.');
+                return;
+            }
+
+            const url = `https://store1.warbrokers.io/296//get_preset_v2.php?token=${token}&vehicle=${entity}`;
+
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+
+                displayPresetData(lines);
+            } catch (error) {
+                alert('Error fetching preset data: ' + error);
+            }
+        }
+
+        function displayPresetData(lines) {
+            const outputDiv = document.getElementById('preset-output');
+            outputDiv.innerHTML = ''; // Clear previous data
+
+            let tableHtml = '<table class="icon-table">';
+            
+            lines.forEach(line => {
+                const items = line.split(',');
+                tableHtml += '<tr>';
+                
+                items.forEach(item => {
+                    const iconPath = `../../data/${item.substring(0, 3)}/${item}.png`;
+                    tableHtml += `<td><img src="${iconPath}" onerror="this.onerror=null;this.src='';this.alt='${item}.png';">`;
+                    tableHtml += `<div>${item}</div></td>`;
+                });
+                
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</table>';
+            outputDiv.innerHTML = tableHtml;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Squad Last Seen</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Squad Last Seen Tracker</h1>
+  </header>
+  <main>
+    <section id="input-section">
+      <label for="squadName">Enter Squad Name:</label>
+      <input type="text" id="squadName" placeholder="Enter squad name here" />
+      <button id="fetchData">Fetch Data</button>
+      <div id="errorMessage" style="color: red; margin-top: 10px;"></div>
+    </section>
+    <section id="table-section" style="margin-top: 20px; display: none;">
+      <h2>Last Seen Players</h2>
+      <table id="lastSeenTable">
+        <thead>
+          <tr>
+            <th>Nickname</th>
+            <th>UID</th>
+            <th>Last Seen (GMT)</th>
+            <th>Time Ago</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+      <button id="downloadCSV" style="margin-top: 10px;">Download CSV</button>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,43 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Test</title>
-  </head>
-  <body>
-    <input id="get">
-    <button id="submit" onclick="output()">Submit</button>
-
-    <a id="display"></a>
-  </body>
-
-  <script>
-
-    const btn = document.getElementById("submit");
-    const display = document.getElementById("display");
-
-    let file = "./data/test.csv";
-
-    async function get_data(path) {
-      try {
-        const response = await fetch(path);
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        // Return the raw server data
-        return response.text();
-      }
-      catch (error) {
-        console.error(error);
-      }
-    }
-
-    async function output() {
-      const data = await get_data(file)
-      display.textContent = data;
-    }
-
-
-  </script>
-
+<html>
+<body>
+<a href="https://zorkaa.github.io/wb/">WB</a>
+</body>
 </html>
