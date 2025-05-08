@@ -91,8 +91,8 @@
         let yScaleType = 'linear'; // Default to linear scale
 
         // Supabase setup
-        const supabaseUrl = 'https://vviprqpyqkwjdtqqlmde.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aXBycXB5cWt3amR0cXFsbWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAxMDUxNzMsImV4cCI6MjA0NTY4MTE3M30.ftmjdgdJPjOox5SpxDNoQ3kJX0vfbhRoEHharLcI4eM';
+        const supabaseUrl = process.env.SUPABASE_URL || 'https://vviprqpyqkwjdtqqlmde.supabase.co';
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aXBycXB5cWt3amR0cXFsbWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAxMDUxNzMsImV4cCI6MjA0NTY4MTE3M30.ftmjdgdJPjOox5SpxDNoQ3kJX0vfbhRoEHharLcI4eM';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         // Add a metric dropdown
