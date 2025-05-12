@@ -25,9 +25,20 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # Replace placeholders with environment variables
-          sed -i "s|'{{SUPABASE_URL}}'|'$SUPABASE_URL'|g" wb/tsstats/index.html
-          sed -i "s|'{{SUPABASE_ANON_KEY}}'|'$SUPABASE_ANON_KEY'|g" wb/tsstats/index.html
+          # Create a temporary file with the environment variables
+          echo "const supabaseUrl = '$SUPABASE_URL';" > temp.js
+          echo "const supabaseKey = '$SUPABASE_ANON_KEY';" >> temp.js
+          
+          # Replace the Supabase initialization in the HTML file
+          awk '
+            /const supabaseUrl =/ { print "const supabaseUrl = \"'"$SUPABASE_URL"'\";"; next }
+            /const supabaseKey =/ { print "const supabaseKey = \"'"$SUPABASE_ANON_KEY"'\";"; next }
+            { print }
+          ' wb/tsstats/index.html > temp.html
+          
+          # Replace the original file with the modified one
+          mv temp.html wb/tsstats/index.html
+          rm temp.js
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.4
