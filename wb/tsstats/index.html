@@ -91,9 +91,16 @@
         let yScaleType = 'linear'; // Default to linear scale
 
         // Supabase setup
-        const supabaseUrl = 'https://vviprqpyqkwjdtqqlmde.supabase.co';
-        const supabaseKey = '';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        let supabaseUrl = 'https://vviprqpyqkwjdtqqlmde.supabase.co';
+        let supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aXBycXB5cWt3amR0cXFsbWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAxMDUxNzMsImV4cCI6MjA0NTY4MTE3M30.ftmjdgdJPjOox5SpxDNoQ3kJX0vfbhRoEHharLcI4eM';
+        let supabaseClient = null;
+
+        // Initialize Supabase client
+        try {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        } catch (error) {
+            console.error('Error initializing Supabase client:', error);
+        }
 
         // Add a metric dropdown
         function addMetricInput() {
