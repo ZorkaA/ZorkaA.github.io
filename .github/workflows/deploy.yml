@@ -26,8 +26,8 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           # Replace placeholders with environment variables
-          sed -i "s|{{SUPABASE_URL}}|$SUPABASE_URL|g" wb/tsstats/index.html
-          sed -i "s|{{SUPABASE_ANON_KEY}}|$SUPABASE_ANON_KEY|g" wb/tsstats/index.html
+          sed -i "s|'{{SUPABASE_URL}}'|'$SUPABASE_URL'|g" wb/tsstats/index.html
+          sed -i "s|'{{SUPABASE_ANON_KEY}}'|'$SUPABASE_ANON_KEY'|g" wb/tsstats/index.html
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.4
