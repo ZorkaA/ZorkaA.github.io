@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War Brokers Stats and Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f8f9fa; 
+            color: #333;
+        }
+        header { background-color: #ffffff; border-bottom: 1px solid #e0e0e0; }
+        input { 
+            border-radius: 8px; 
+            border: 1px solid #ced4da; 
+            padding: 12px; 
+            font-size: 16px; 
+            transition: box-shadow 0.2s; 
+        }
+        input:focus { box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); outline: none; }
+        .suggestion-item { transition: background-color 0.2s; }
+        .suggestion-item:hover { background-color: #e9ecef; }
+        .player-name { 
+            background-color: #ffffff; 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            margin: 20px 0;
+        }
+        .stat-bubble { 
+            background-color: #ffffff; 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            text-align: center; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            width: 180px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .stat-bubble:hover { 
+            transform: translateY(-5px) scale(1.02); 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .chart-container { margin-bottom: 40px; }
+        .chart-container h2 { color: #495057; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const BarChart = ({ title, data }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const sortedKeys = Object.keys(data).sort((a, b) => data[b] - data[a]);
+                const sortedData = sortedKeys.map(key => data[key]);
+                const labelsWithValues = sortedKeys.map(key => `${key} ${Math.ceil(data[key])}`);
+                const ctx = canvasRef.current.getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsWithValues,
+                        datasets: [{
+                            label: title,
+                            data: sortedData,
+                            backgroundColor: 'rgba(108, 117, 125, 0.6)',
+                            borderColor: 'rgba(108, 117, 125, 1)',
+                            borderWidth: 1,
+                            hoverBackgroundColor: 'rgba(73, 80, 87, 0.8)'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        scales: {
+                            x: { beginAtZero: true },
+                            y: {
+                                ticks: {
+                                    font: {
+                                        size: 16
+                                    }
+                                }
+                            }
+                        },
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                animation: {
+                                    duration: 100
+                                }
+                            }
+                        }
+                    }
+                });
+            }, [data, title]);
+
+            return <canvas ref={canvasRef} style={{ height: '800px', width: '100%' }} />;
+        };
+
+        const DockComponent = ({ onUserClick, onSquadClick }) => {
+            const dockRef = useRef(null);
+            const itemRefs = useRef([]);
+            const items = [
+                { label: 'user', icon: 'user', onClick: onUserClick },
+                { label: 'squad', icon: 'people-roof', onClick: onSquadClick },
+            ];
+
+            useEffect(() => {
+                itemRefs.current = itemRefs.current.slice(0, items.length);
+            }, []);
+
+            const itemSize = 40;
+            const magnifiedSize = 50;
+            const maxScale = magnifiedSize / itemSize;
+            const range = 100;
+
+            const handleMouseMove = (e) => {
+                const dockRect = dockRef.current.getBoundingClientRect();
+                const mouseX = e.clientX - dockRect.left;
+                itemRefs.current.forEach((itemRef, index) => {
+                    if (itemRef) {
+                        const itemRect = itemRef.getBoundingClientRect();
+                        const centerX = itemRect.left - dockRect.left + itemRect.width / 2;
+                        const distance = Math.abs(mouseX - centerX);
+                        let scale = 1;
+                        if (distance < range) {
+                            scale = 1 + (maxScale - 1) * (1 - distance / range);
+                        }
+                        itemRef.style.transform = `scale(${scale})`;
+                        itemRef.style.transition = 'transform 0.1s';
+                    }
+                });
+            };
+
+            const handleMouseLeave = () => {
+                itemRefs.current.forEach((itemRef) => {
+                    if (itemRef) {
+                        itemRef.style.transform = 'scale(1)';
+                    }
+                });
+            };
+
+            return (
+                <div
+                    ref={dockRef}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    style={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: '62px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-end',
+                        background: '#ffffff',
+                        borderTop: '1px solid #e0e0e0',
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        {items.map((item, index) => (
+                            <div
+                                ref={(el) => (itemRefs.current[index] = el)}
+                                key={index}
+                                onClick={item.onClick}
+                                style={{
+                                    width: `${itemSize}px`,
+                                    height: `${itemSize}px`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transformOrigin: 'bottom',
+                                    margin: '0 10px',
+                                }}
+                            >
+                                <i className={`fas fa-${item.icon}`} style={{ fontSize: '24px', color: '#495057' }}></i>
+                                <span style={{ fontSize: '12px', color: '#495057' }}>{item.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [page, setPage] = useState('user');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [suggestions, setSuggestions] = useState([]);
+            const [player, setPlayer] = useState(null);
+            const debounceRef = useRef(null);
+            const bubblesRef = useRef(null);
+
+            const fetchSuggestions = async (query) => {
+                if (query === '') {
+                    setSuggestions([]);
+                    return;
+                }
+                let results = [];
+                try {
+                    const res = await fetch(`https://wbapi.wbpjs.com/players/searchByName?query=${query}`);
+                    results = await res.json();
+                } catch (e) {
+                    console.log('Endpoint failed', e);
+                }
+                const unique = results; // Already unique from one source
+                console.log('Results:', unique);
+                setSuggestions(unique);
+            };
+
+            const handleChange = (e) => {
+                const q = e.target.value;
+                setSearchQuery(q);
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                debounceRef.current = setTimeout(() => fetchSuggestions(q), 200);
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+                    fetchSuggestions(searchQuery);
+                }
+            };
+
+            const handleSelect = async (uid) => {
+                setSuggestions([]);
+                setSearchQuery('');
+                try {
+                    const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+                    const data = await res.json();
+                    setPlayer(data);
+                } catch (e) {
+                    console.log('Fetch player failed', e);
+                }
+            };
+
+            useEffect(() => {
+                if (player && bubblesRef.current) {
+                    const bubbles = Array.from(bubblesRef.current.children);
+                    gsap.from(bubbles, { 
+                        opacity: 0, 
+                        y: 20, 
+                        stagger: 0.1, 
+                        duration: 0.5, 
+                        ease: 'power2.out' 
+                    });
+                }
+            }, [player]);
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+                    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
+                        <img
+                            src="https://stats.warbrokers.io/images/War_Brokers_Logo_med_ORIG.png"
+                            alt="Logo"
+                            style={{ height: '60px' }}
+                        />
+                        <h1 style={{ marginLeft: '10px', color: '#212529' }}>War Brokers Stats and Analytics</h1>
+                    </header>
+                    <main style={{ flex: 1, overflow: 'auto', padding: '20px', backgroundColor: '#f8f9fa' }}>
+                        {page === 'user' && (
+                            <div>
+                                <div style={{ position: 'relative', maxWidth: '600px', margin: '0 auto' }}>
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={handleChange}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="Search player..."
+                                        style={{ width: '100%', boxSizing: 'border-box' }}
+                                    />
+                                    {suggestions.length > 0 && (
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                width: '100%',
+                                                maxHeight: '200px',
+                                                overflow: 'auto',
+                                                background: '#ffffff',
+                                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                                zIndex: 1,
+                                                borderRadius: '8px',
+                                                marginTop: '4px'
+                                            }}
+                                        >
+                                            {suggestions.map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="suggestion-item"
+                                                    onClick={() => handleSelect(item.uid)}
+                                                    style={{ padding: '12px', cursor: 'pointer' }}
+                                                >
+                                                    <div style={{ fontSize: '18px', color: '#212529' }}>{item.nick}</div>
+                                                    <div style={{ fontSize: '14px', color: '#6c757d' }}>{item.uid}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {player && (
+                                    <div>
+                                        <div className="player-name" style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#212529' }}>
+                                                [{player.squad}] {player.nick}
+                                            </div>
+                                            <div style={{ color: '#6c757d', fontSize: '16px' }}>{player.uid}</div>
+                                        </div>
+                                        <div
+                                            ref={bubblesRef}
+                                            style={{
+                                                display: 'flex',
+                                                flexWrap: 'wrap',
+                                                justifyContent: 'center',
+                                                gap: '20px',
+                                                marginTop: '20px',
+                                            }}
+                                        >
+                                            {[
+                                                'level',
+                                                'xp',
+                                                'coins',
+                                                'killsELO',
+                                                'gamesELO',
+                                                'number_of_jumps',
+                                                'scuds_launched',
+                                                'zombie_kills',
+                                                'zombie_deaths',
+                                                'zombie_wins',
+                                            ].map((key) => (
+                                                <div key={key} className="stat-bubble">
+                                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#212529' }}>{player[key]}</div>
+                                                    <div style={{ fontSize: '14px', color: '#6c757d', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ marginTop: '40px' }}>
+                                            {Object.keys(player)
+                                                .filter((key) => typeof player[key] === 'object' && player[key] !== null && !Array.isArray(player[key]))
+                                                .map((parentKey) => (
+                                                    <div key={parentKey} className="chart-container">
+                                                        <h2>{parentKey.replace(/_/g, ' ').toUpperCase()}</h2>
+                                                        <BarChart title={parentKey} data={player[parentKey]} />
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {page === 'squad' && (
+                            <div>
+                                <p style={{ textAlign: 'center', color: '#6c757d' }}>Squad stats coming soon.</p>
+                            </div>
+                        )}
+                    </main>
+                    <DockComponent onUserClick={() => setPage('user')} onSquadClick={() => setPage('squad')} />
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
