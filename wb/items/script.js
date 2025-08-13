@@ -9,7 +9,7 @@ const fetchPrices = async (missingOnly = false) => {
     }
 
     try {
-        const response = await fetch("https://store1.warbrokers.io/301//get_item_list.php");
+        const response = await fetch("https://store1.warbrokers.io/304//get_item_list.php");
         const data = await response.text();
         const itemsArray = data.split(",").reduce((acc, val, index, array) => {
             if (index % 2 === 0) acc.push({ id: val, price: parseInt(array[index + 1], 10) });
@@ -100,7 +100,7 @@ const handleTokenSubmission = async () => {
     }
 
     try {
-        const response = await fetch(`https://store1.warbrokers.io/301//get_items.php?token=${token}`);
+        const response = await fetch(`https://store1.warbrokers.io/304//get_items.php?token=${token}`);
         const data = await response.text();
 
         if (data === "Error! Bad token") {
