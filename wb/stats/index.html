@@ -38,13 +38,13 @@
         .stat-bubble { 
             background-color: #ffffff; 
             border-radius: 12px; 
-            padding: 20px; 
+            padding: 15px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
             text-align: center; 
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
-            width: 180px;
-            height: 120px;
+            width: 140px;
+            height: 90px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -56,6 +56,13 @@
         }
         .chart-container { margin-bottom: 40px; }
         .chart-container h2 { color: #495057; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
@@ -63,13 +70,138 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const BarChart = ({ title, data }) => {
+        const WeaponName = {
+            "p09": "Air Strike",
+            "p11": "BGM",
+            "p52": "Tank Lvl-1",
+            "p53": "APC Lvl-1",
+            "p54": "Heli Lvl-1",
+            "p55": "Tank Lvl-2",
+            "p56": "APC Lvl-2",
+            "p57": "Heli Lvl-2",
+            "p58": "Tank Lvl-3",
+            "p59": "APC Lvl-3",
+            "p60": "Heli Lvl-3",
+            "p61": "AR Rifle",
+            "p62": "AK Rifle",
+            "p63": "Pistol",
+            "p64": "Hunting Rifle",
+            "p65": "RPG",
+            "p66": "Shotgun",
+            "p67": "Sniper Rifle",
+            "p68": "Sub Machine Gun",
+            "p69": "Homing Missile",
+            "p71": "Grenade",
+            "p74": "Heli Minigun",
+            "p75": "Tank Minigun",
+            "p76": "Knife",
+            "p78": "Revolver",
+            "p79": "Minigun",
+            "p80": "Grenade Launcher",
+            "p81": "Smoke Grenade",
+            "p82": "Jet (1 Fin) Rockets",
+            "p83": "Jet (1 Fin) Homing",
+            "p84": "Jet (1 Fin) Machine Gun",
+            "p85": "Jet (2 Fin) Rockets",
+            "p86": "Jet (2 Fin) Homing",
+            "p87": "Jet (2 Fin) Machine Gun",
+            "p88": "Fists",
+            "p89": "VSS",
+            "p90": ".50 Cal Sniper",
+            "p91": "MG Turret",
+            "p92": "Crossbow",
+            "p93": "SCAR",
+            "p94": "Tactical Shotgun",
+            "p95": "VEK SMG",
+            "p96": "Desert",
+            "p97": "Auto Pistol",
+            "p98": "LMG",
+            "p99": "KBAR",
+            "p100": "Mace",
+            "p101": "Rubber Chicken",
+            "p102": "Butterfly",
+            "p103": "Chainsaw",
+            "p104": "AK SMG",
+            "p105": "Auto Sniper",
+            "p106": "Unreleased AR",
+            "p107": "Sawed Off",
+            "p108": "Healing Pistol",
+            "p109": "MP7",
+            "p110": "Implosion Grenade",
+            "p111": "Laser Trip Mine",
+            "p112": "Concussion Grenade",
+            "p126": "G3A3",
+            "p128": "Marksman's Rifle",
+            "p129": "Mutant",
+        };
+
+        const gameModeName = {
+            "m00": "Team Death Match",
+            "m01": "Demolition Derby",
+            "m02": "Protect Leader",
+            "m03": "Resource Capture",
+            "m04": "Race",
+            "m05": "Tank Battle",
+            "m06": "Tank King",
+            "m07": "Capture Point",
+            "m08": "Vehicle Escort",
+            "m09": "Package Drop",
+            "m10": "Missile Launch/Bomb Disposal",
+            "m11": "Battle Royale",
+            "m12": "Competitive",
+            "m13": "Competitive (Lobby)",
+            "m14": "Battle Royale (Lobby)",
+            "m15": "Gun Game",
+        };
+
+        const VehicleName = {
+            "v00": "Tank Lvl-1",
+            "v01": "Tank Lvl-2",
+            "v02": "Tank Lvl-3",
+            "v10": "APC Lvl-1",
+            "v11": "APC Lvl-2",
+            "v12": "APC Lvl-3",
+            "v13": "Car",
+            "v14": "Unknown Vehicle 14",
+            "v15": "1 Fin Jet Machine Gun",
+            "v16": "Unknown Vehicle 16",
+            "v17": "Unknown Vehicle 17",
+            "v18": "Unknown Vehicle 18",
+            "v19": "Unknown Vehicle 19",
+            "v20": "Heli Lvl-1",
+            "v21": "Heli Lvl-2",
+            "v22": "Heli Lvl-3",
+            "v23": "Heli (No Weapon)",
+            "v30": "Person",
+            "v40": "Jet (1 Fin)",
+            "v41": "Jet (2 Fin)",
+            "v50": "Machine Gun Turret",
+            "v60": "Unknown Vehicle 60",
+            "v110": "Unknown Vehicle 110",
+            "v111": "Unknown Vehicle 111",
+            "v112": "Unknown Vehicle 112",
+            "v113": "Unknown Vehicle 113",
+        };
+
+        const BarChart = ({ title, data, parentKey }) => {
             const canvasRef = useRef(null);
+
+            const getLabel = (key) => {
+                let map;
+                if (['wins', 'losses'].includes(parentKey)) {
+                    map = gameModeName;
+                } else if (['self_destructs', 'distance_driven', 'distance_driven_count', 'kills_per_vehicle'].includes(parentKey)) {
+                    map = VehicleName;
+                } else {
+                    map = WeaponName;
+                }
+                return map[key] || key;
+            };
 
             useEffect(() => {
                 const sortedKeys = Object.keys(data).sort((a, b) => data[b] - data[a]);
                 const sortedData = sortedKeys.map(key => data[key]);
-                const labelsWithValues = sortedKeys.map(key => `${key} ${Math.ceil(data[key])}`);
+                const labelsWithValues = sortedKeys.map(key => `${getLabel(key)} ${Math.ceil(data[key])}`);
                 const ctx = canvasRef.current.getContext('2d');
                 new Chart(ctx, {
                     type: 'bar',
@@ -107,9 +239,29 @@
                         }
                     }
                 });
-            }, [data, title]);
+            }, [data, title, parentKey]);
 
             return <canvas ref={canvasRef} style={{ height: '800px', width: '100%' }} />;
+        };
+
+        const StatsGrid = ({ children }) => {
+            const gridRef = useRef(null);
+
+            useEffect(() => {
+                if (gridRef.current) {
+                    gsap.from(gridRef.current.children, {
+                        opacity: 0,
+                        duration: 0.5,
+                        ease: 'power2.out'
+                    });
+                }
+            }, []);
+
+            return (
+                <div ref={gridRef} className="stats-grid">
+                    {children}
+                </div>
+            );
         };
 
         const DockComponent = ({ onUserClick, onSquadClick }) => {
@@ -122,6 +274,14 @@
 
             useEffect(() => {
                 itemRefs.current = itemRefs.current.slice(0, items.length);
+                gsap.from(itemRefs.current, {
+                    y: 50,
+                    opacity: 0,
+                    scale: 0.8,
+                    stagger: 0.2,
+                    duration: 0.6,
+                    ease: 'back.out(1.7)',
+                });
             }, []);
 
             const itemSize = 40;
@@ -206,7 +366,7 @@
             const [suggestions, setSuggestions] = useState([]);
             const [player, setPlayer] = useState(null);
             const debounceRef = useRef(null);
-            const bubblesRef = useRef(null);
+            const nameRef = useRef(null);
 
             const fetchSuggestions = async (query) => {
                 if (query === '') {
@@ -229,7 +389,7 @@
                 const q = e.target.value;
                 setSearchQuery(q);
                 if (debounceRef.current) clearTimeout(debounceRef.current);
-                debounceRef.current = setTimeout(() => fetchSuggestions(q), 200);
+                debounceRef.current = setTimeout(() => fetchSuggestions(q), 100);
             };
 
             const handleKeyDown = (e) => {
@@ -252,12 +412,9 @@
             };
 
             useEffect(() => {
-                if (player && bubblesRef.current) {
-                    const bubbles = Array.from(bubblesRef.current.children);
-                    gsap.from(bubbles, { 
+                if (player && nameRef.current) {
+                    gsap.from(nameRef.current, { 
                         opacity: 0, 
-                        y: 20, 
-                        stagger: 0.1, 
                         duration: 0.5, 
                         ease: 'power2.out' 
                     });
@@ -277,7 +434,7 @@
                     <main style={{ flex: 1, overflow: 'auto', padding: '20px', backgroundColor: '#f8f9fa' }}>
                         {page === 'user' && (
                             <div>
-                                <div style={{ position: 'relative', maxWidth: '600px', margin: '0 auto' }}>
+                                <div style={{ position: 'relative', maxWidth: '400px', margin: '0 auto' }}>
                                     <input
                                         type="text"
                                         value={searchQuery}
@@ -316,22 +473,13 @@
                                 </div>
                                 {player && (
                                     <div>
-                                        <div className="player-name" style={{ textAlign: 'center' }}>
+                                        <div ref={nameRef} className="player-name" style={{ textAlign: 'center' }}>
                                             <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#212529' }}>
                                                 [{player.squad}] {player.nick}
                                             </div>
                                             <div style={{ color: '#6c757d', fontSize: '16px' }}>{player.uid}</div>
                                         </div>
-                                        <div
-                                            ref={bubblesRef}
-                                            style={{
-                                                display: 'flex',
-                                                flexWrap: 'wrap',
-                                                justifyContent: 'center',
-                                                gap: '20px',
-                                                marginTop: '20px',
-                                            }}
-                                        >
+                                        <StatsGrid>
                                             {[
                                                 'level',
                                                 'xp',
@@ -345,18 +493,18 @@
                                                 'zombie_wins',
                                             ].map((key) => (
                                                 <div key={key} className="stat-bubble">
-                                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#212529' }}>{player[key]}</div>
-                                                    <div style={{ fontSize: '14px', color: '#6c757d', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</div>
+                                                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#212529' }}>{player[key]}</div>
+                                                    <div style={{ fontSize: '12px', color: '#6c757d', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</div>
                                                 </div>
                                             ))}
-                                        </div>
+                                        </StatsGrid>
                                         <div style={{ marginTop: '40px' }}>
                                             {Object.keys(player)
                                                 .filter((key) => typeof player[key] === 'object' && player[key] !== null && !Array.isArray(player[key]))
                                                 .map((parentKey) => (
                                                     <div key={parentKey} className="chart-container">
                                                         <h2>{parentKey.replace(/_/g, ' ').toUpperCase()}</h2>
-                                                        <BarChart title={parentKey} data={player[parentKey]} />
+                                                        <BarChart title={parentKey} data={player[parentKey]} parentKey={parentKey} />
                                                     </div>
                                                 ))}
                                         </div>
