@@ -14,32 +14,85 @@
         body { 
             margin: 0; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #f8f9fa; 
-            color: #333;
+            background-color: var(--background-color); 
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
-        header { background-color: #ffffff; border-bottom: 1px solid #e0e0e0; }
+        :root {
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --header-bg: #ffffff;
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --card-shadow-hover: 0 6px 12px rgba(0,0,0,0.15);
+            --border-color: #e0e0e0;
+            --input-border: #ced4da;
+            --input-shadow: rgba(0, 123, 255, 0.25);
+            --suggestion-bg: #ffffff;
+            --suggestion-hover: #e9ecef;
+            --chart-title: #495057;
+            --chart-bg: rgba(108, 117, 125, 0.6);
+            --chart-border: rgba(108, 117, 125, 1);
+            --chart-hover: rgba(73, 80, 87, 0.8);
+            --feature-name: #1c2526;
+            --dock-bg: #ffffff;
+        }
+        [data-theme="dark"] {
+            --background-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-bg: #2c2c2c;
+            --card-bg: #2c2c2c;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            --card-shadow-hover: 0 6px 12px rgba(0,0,0,0.4);
+            --border-color: #3c3c3c;
+            --input-border: #4a4a4a;
+            --input-shadow: rgba(0, 123, 255, 0.4);
+            --suggestion-bg: #2c2c2c;
+            --suggestion-hover: #3c3c3c;
+            --chart-title: #b0b0b0;
+            --chart-bg: rgba(108, 117, 125, 0.7);
+            --chart-border: rgba(108, 117, 125, 1);
+            --chart-hover: rgba(150, 150, 150, 0.8);
+            --feature-name: #d0d0d0;
+            --dock-bg: #2c2c2c;
+        }
+        header { 
+            background-color: var(--header-bg); 
+            border-bottom: 1px solid var(--border-color); 
+            position: relative;
+        }
         input { 
             border-radius: 8px; 
-            border: 1px solid #ced4da; 
+            border: 1px solid var(--input-border); 
             padding: 12px; 
             font-size: 16px; 
             transition: box-shadow 0.2s; 
+            background-color: var(--card-bg);
+            color: var(--text-color);
         }
-        input:focus { box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); outline: none; }
-        .suggestion-item { transition: background-color 0.2s; }
-        .suggestion-item:hover { background-color: #e9ecef; }
+        input:focus { 
+            box-shadow: 0 0 0 0.2rem var(--input-shadow); 
+            outline: none; 
+        }
+        .suggestion-item { 
+            transition: background-color 0.2s; 
+            background-color: var(--suggestion-bg);
+        }
+        .suggestion-item:hover { 
+            background-color: var(--suggestion-hover); 
+        }
         .player-name { 
-            background-color: #ffffff; 
+            background-color: var(--card-bg); 
             border-radius: 12px; 
             padding: 20px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            box-shadow: var(--card-shadow); 
             margin: 20px 0;
         }
         .stat-bubble { 
-            background-color: #ffffff; 
+            background-color: var(--card-bg); 
             border-radius: 12px; 
             padding: 15px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            box-shadow: var(--card-shadow); 
             text-align: center; 
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
@@ -52,16 +105,48 @@
         }
         .stat-bubble:hover { 
             transform: translateY(-5px) scale(1.02); 
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            box-shadow: var(--card-shadow-hover);
         }
-        .chart-container { margin-bottom: 40px; }
-        .chart-container h2 { color: #495057; }
+        .chart-container { 
+            margin-bottom: 40px; 
+        }
+        .chart-container h2 { 
+            color: var(--chart-title); 
+        }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 20px;
             max-width: 800px;
             margin: 0 auto;
+        }
+        .dock-container {
+            padding-bottom: 20px;
+            background-color: var(--dock-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        .toggle-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s, transform 0.2s;
+        }
+        .toggle-button:hover {
+            background-color: var(--suggestion-hover);
+            transform: scale(1.1);
+        }
+        .toggle-button i {
+            font-size: 20px;
+            color: var(--text-color);
         }
     </style>
 </head>
@@ -201,7 +286,15 @@
             useEffect(() => {
                 const sortedKeys = Object.keys(data).sort((a, b) => data[b] - data[a]);
                 const sortedData = sortedKeys.map(key => data[key]);
-                const labelsWithValues = sortedKeys.map(key => `${getLabel(key)} ${Math.ceil(data[key])}`);
+                const maxLabelLength = Math.max(...sortedKeys.map(key => getLabel(key).length));
+                const maxValueLength = Math.max(...sortedData.map(val => Math.ceil(val).toString().length));
+                const labelsWithValues = sortedKeys.map(key => {
+                    const label = getLabel(key);
+                    const value = Math.ceil(data[key]).toString();
+                    const paddedLabel = label.padEnd(maxLabelLength, ' ');
+                    const paddedValue = value.padStart(maxValueLength, ' ');
+                    return `${paddedLabel} ${paddedValue}`;
+                });
                 const ctx = canvasRef.current.getContext('2d');
                 new Chart(ctx, {
                     type: 'bar',
@@ -223,7 +316,12 @@
                             y: {
                                 ticks: {
                                     font: {
-                                        size: 16
+                                        size: 16,
+                                        family: 'monospace'
+                                    },
+                                    align: 'end',
+                                    callback: function(value, index) {
+                                        return labelsWithValues[index];
                                     }
                                 }
                             }
@@ -320,17 +418,16 @@
                     ref={dockRef}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
+                    className="dock-container"
                     style={{
                         position: 'fixed',
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        height: '62px',
+                        height: '82px',
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'flex-end',
-                        background: '#ffffff',
-                        borderTop: '1px solid #e0e0e0',
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -351,8 +448,8 @@
                                     margin: '0 10px',
                                 }}
                             >
-                                <i className={`fas fa-${item.icon}`} style={{ fontSize: '24px', color: '#495057' }}></i>
-                                <span style={{ fontSize: '12px', color: '#495057' }}>{item.label}</span>
+                                <i className={`fas fa-${item.icon}`} style={{ fontSize: '24px', color: 'var(--text-color)' }}></i>
+                                <span style={{ fontSize: '12px', color: 'var(--text-color)' }}>{item.label}</span>
                             </div>
                         ))}
                     </div>
@@ -365,8 +462,26 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [suggestions, setSuggestions] = useState([]);
             const [player, setPlayer] = useState(null);
+            const [theme, setTheme] = useState('light');
             const debounceRef = useRef(null);
             const nameRef = useRef(null);
+
+            const toggleTheme = () => {
+                const newTheme = theme === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+                document.body.setAttribute('data-theme', newTheme);
+            };
+
+            const fetchPlayer = async (uid) => {
+                try {
+                    const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+                    const data = await res.json();
+                    setPlayer(data);
+                    window.history.pushState({}, '', `/wb/stats/${uid}`);
+                } catch (e) {
+                    console.log('Fetch player failed', e);
+                }
+            };
 
             const fetchSuggestions = async (query) => {
                 if (query === '') {
@@ -380,7 +495,7 @@
                 } catch (e) {
                     console.log('Endpoint failed', e);
                 }
-                const unique = results; // Already unique from one source
+                const unique = results;
                 console.log('Results:', unique);
                 setSuggestions(unique);
             };
@@ -402,14 +517,17 @@
             const handleSelect = async (uid) => {
                 setSuggestions([]);
                 setSearchQuery('');
-                try {
-                    const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
-                    const data = await res.json();
-                    setPlayer(data);
-                } catch (e) {
-                    console.log('Fetch player failed', e);
-                }
+                await fetchPlayer(uid);
             };
+
+            useEffect(() => {
+                const path = window.location.pathname;
+                const match = path.match(/^\/wb\/stats\/(.+)/);
+                if (match) {
+                    const uid = match[1];
+                    fetchPlayer(uid);
+                }
+            }, []);
 
             useEffect(() => {
                 if (player && nameRef.current) {
@@ -429,9 +547,12 @@
                             alt="Logo"
                             style={{ height: '60px' }}
                         />
-                        <h1 style={{ marginLeft: '10px', color: '#212529' }}>War Brokers Stats and Analytics</h1>
+                        <h1 style={{ marginLeft: '10px', color: 'var(--text-color)' }}>War Brokers Stats and Analytics</h1>
+                        <button className="toggle-button" onClick={toggleTheme}>
+                            <i className={`fas fa-${theme === 'light' ? 'moon' : 'sun'}`}></i>
+                        </button>
                     </header>
-                    <main style={{ flex: 1, overflow: 'auto', padding: '20px', backgroundColor: '#f8f9fa' }}>
+                    <main style={{ flex: 1, overflow: 'auto', padding: '20px', backgroundColor: 'var(--background-color)' }}>
                         {page === 'user' && (
                             <div>
                                 <div style={{ position: 'relative', maxWidth: '400px', margin: '0 auto' }}>
@@ -450,8 +571,7 @@
                                                 width: '100%',
                                                 maxHeight: '200px',
                                                 overflow: 'auto',
-                                                background: '#ffffff',
-                                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                                boxShadow: 'var(--card-shadow)',
                                                 zIndex: 1,
                                                 borderRadius: '8px',
                                                 marginTop: '4px'
@@ -464,8 +584,8 @@
                                                     onClick={() => handleSelect(item.uid)}
                                                     style={{ padding: '12px', cursor: 'pointer' }}
                                                 >
-                                                    <div style={{ fontSize: '18px', color: '#212529' }}>{item.nick}</div>
-                                                    <div style={{ fontSize: '14px', color: '#6c757d' }}>{item.uid}</div>
+                                                    <div style={{ fontSize: '18px', color: 'var(--text-color)' }}>{item.nick}</div>
+                                                    <div style={{ fontSize: '14px', color: theme === 'light' ? '#6c757d' : '#9ca3af' }}>{item.uid}</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -474,10 +594,10 @@
                                 {player && (
                                     <div>
                                         <div ref={nameRef} className="player-name" style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#212529' }}>
+                                            <div style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--text-color)' }}>
                                                 [{player.squad}] {player.nick}
                                             </div>
-                                            <div style={{ color: '#6c757d', fontSize: '16px' }}>{player.uid}</div>
+                                            <div style={{ fontSize: '16px', color: theme === 'light' ? '#6c757d' : '#9ca3af' }}>{player.uid}</div>
                                         </div>
                                         <StatsGrid>
                                             {[
@@ -493,8 +613,8 @@
                                                 'zombie_wins',
                                             ].map((key) => (
                                                 <div key={key} className="stat-bubble">
-                                                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#212529' }}>{player[key]}</div>
-                                                    <div style={{ fontSize: '12px', color: '#6c757d', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</div>
+                                                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-color)' }}>{player[key]}</div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--feature-name)', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</div>
                                                 </div>
                                             ))}
                                         </StatsGrid>
@@ -514,7 +634,7 @@
                         )}
                         {page === 'squad' && (
                             <div>
-                                <p style={{ textAlign: 'center', color: '#6c757d' }}>Squad stats coming soon.</p>
+                                <p style={{ textAlign: 'center', color: theme === 'light' ? '#6c757d' : '#9ca3af' }}>Squad stats coming soon.</p>
                             </div>
                         )}
                     </main>
