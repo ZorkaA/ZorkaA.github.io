@@ -36,6 +36,7 @@
             --chart-hover: rgba(73, 80, 87, 0.8);
             --feature-name: #1c2526;
             --dock-bg: #ffffff;
+            --error-color: #dc3545;
         }
         [data-theme="dark"] {
             --background-color: #1a1a1a;
@@ -55,6 +56,7 @@
             --chart-hover: rgba(150, 150, 150, 0.8);
             --feature-name: #d0d0d0;
             --dock-bg: #2c2c2c;
+            --error-color: #f08080;
         }
         header { 
             background-color: var(--header-bg); 
@@ -145,8 +147,14 @@
             transform: scale(1.1);
         }
         .toggle-button i {
-            font-size: 20px;
+            fontSize: 20px;
             color: var(--text-color);
+        }
+        .error-message {
+            text-align: center;
+            color: var(--error-color);
+            font-size: 16px;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -270,6 +278,7 @@
 
         const BarChart = ({ title, data, parentKey }) => {
             const canvasRef = useRef(null);
+            const chartRef = useRef(null);
 
             const getLabel = (key) => {
                 let map;
@@ -296,17 +305,23 @@
                     return `${paddedLabel} ${paddedValue}`;
                 });
                 const ctx = canvasRef.current.getContext('2d');
-                new Chart(ctx, {
+                
+                // Destroy previous chart if it exists
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                chartRef.current = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: labelsWithValues,
                         datasets: [{
                             label: title,
                             data: sortedData,
-                            backgroundColor: 'rgba(108, 117, 125, 0.6)',
-                            borderColor: 'rgba(108, 117, 125, 1)',
+                            backgroundColor: 'var(--chart-bg)',
+                            borderColor: 'var(--chart-border)',
                             borderWidth: 1,
-                            hoverBackgroundColor: 'rgba(73, 80, 87, 0.8)'
+                            hoverBackgroundColor: 'var(--chart-hover)'
                         }]
                     },
                     options: {
@@ -337,6 +352,14 @@
                         }
                     }
                 });
+
+                // Cleanup on unmount or re-render
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                        chartRef.current = null;
+                    }
+                };
             }, [data, title, parentKey]);
 
             return <canvas ref={canvasRef} style={{ height: '800px', width: '100%' }} />;
@@ -463,6 +486,8 @@
             const [suggestions, setSuggestions] = useState([]);
             const [player, setPlayer] = useState(null);
             const [theme, setTheme] = useState('light');
+            const [uid, setUid] = useState(null);
+            const [error, setError] = useState(null);
             const debounceRef = useRef(null);
             const nameRef = useRef(null);
 
@@ -472,62 +497,93 @@
                 document.body.setAttribute('data-theme', newTheme);
             };
 
-            const fetchPlayer = async (uid) => {
-                try {
-                    const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
-                    const data = await res.json();
-                    setPlayer(data);
-                    window.history.pushState({}, '', `/wb/stats/${uid}`);
-                } catch (e) {
-                    console.log('Fetch player failed', e);
-                }
-            };
-
             const fetchSuggestions = async (query) => {
-                if (query === '') {
+                if (!query || query.trim().length < 2) {
                     setSuggestions([]);
                     return;
                 }
-                let results = [];
                 try {
-                    const res = await fetch(`https://wbapi.wbpjs.com/players/searchByName?query=${query}`);
-                    results = await res.json();
+                    const res = await fetch(`https://wbapi.wbpjs.com/players/searchByName?query=${encodeURIComponent(query)}`);
+                    if (!res.ok) {
+                        throw new Error(`Search failed: ${res.status} ${res.statusText}`);
+                    }
+                    const results = await res.json();
+                    setSuggestions(results);
+                    setError(null);
                 } catch (e) {
-                    console.log('Endpoint failed', e);
+                    console.error('Fetch suggestions failed', e);
+                    setSuggestions([]);
+                    setError('Failed to fetch player suggestions. Please try again.');
                 }
-                const unique = results;
-                console.log('Results:', unique);
-                setSuggestions(unique);
+            };
+
+            const fetchPlayer = async (uid) => {
+                const cleanUid = uid.replace(/['"]/g, '');
+                if (!cleanUid.match(/^[a-f0-9]{24}$/)) {
+                    setError('Invalid player ID format.');
+                    setPlayer(null);
+                    return;
+                }
+                try {
+                    const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${encodeURIComponent(cleanUid)}`);
+                    if (!res.ok) {
+                        throw new Error(`Player fetch failed: ${res.status} ${res.statusText}`);
+                    }
+                    const data = await res.json();
+                    setPlayer(data);
+                    setError(null);
+                    window.location.hash = `/wb/stats/${cleanUid}`;
+                } catch (e) {
+                    console.error('Fetch player failed', e);
+                    setPlayer(null);
+                    setError('Player not found or invalid ID. Please try another ID.');
+                }
             };
 
             const handleChange = (e) => {
                 const q = e.target.value;
                 setSearchQuery(q);
                 if (debounceRef.current) clearTimeout(debounceRef.current);
-                debounceRef.current = setTimeout(() => fetchSuggestions(q), 100);
+                debounceRef.current = setTimeout(() => fetchSuggestions(q), 300);
             };
 
             const handleKeyDown = (e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && searchQuery.trim().length >= 2) {
                     if (debounceRef.current) clearTimeout(debounceRef.current);
                     fetchSuggestions(searchQuery);
                 }
             };
 
-            const handleSelect = async (uid) => {
+            const handleSelect = (uid) => {
                 setSuggestions([]);
                 setSearchQuery('');
-                await fetchPlayer(uid);
+                setUid(uid);
             };
 
             useEffect(() => {
-                const path = window.location.pathname;
-                const match = path.match(/^\/wb\/stats\/(.+)/);
-                if (match) {
-                    const uid = match[1];
+                const handleHashChange = () => {
+                    const hash = window.location.hash.slice(1);
+                    const match = hash.match(/^\/wb\/stats\/(.+)/);
+                    if (match) {
+                        setUid(match[1]);
+                    } else {
+                        setUid(null);
+                        setPlayer(null);
+                        setError(null);
+                    }
+                };
+
+                window.addEventListener('hashchange', handleHashChange);
+                handleHashChange();
+
+                return () => window.removeEventListener('hashchange', handleHashChange);
+            }, []);
+
+            useEffect(() => {
+                if (uid) {
                     fetchPlayer(uid);
                 }
-            }, []);
+            }, [uid]);
 
             useEffect(() => {
                 if (player && nameRef.current) {
@@ -591,7 +647,10 @@
                                         </div>
                                     )}
                                 </div>
-                                {player && (
+                                {error && (
+                                    <div className="error-message">{error}</div>
+                                )}
+                                {player && !error && (
                                     <div>
                                         <div ref={nameRef} className="player-name" style={{ textAlign: 'center' }}>
                                             <div style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--text-color)' }}>
@@ -638,7 +697,22 @@
                             </div>
                         )}
                     </main>
-                    <DockComponent onUserClick={() => setPage('user')} onSquadClick={() => setPage('squad')} />
+                    <DockComponent 
+                        onUserClick={() => {
+                            setPage('user');
+                            setUid(null);
+                            setPlayer(null);
+                            setError(null);
+                            window.location.hash = '';
+                        }} 
+                        onSquadClick={() => {
+                            setPage('squad');
+                            setUid(null);
+                            setPlayer(null);
+                            setError(null);
+                            window.location.hash = '';
+                        }} 
+                    />
                 </div>
             );
         };
