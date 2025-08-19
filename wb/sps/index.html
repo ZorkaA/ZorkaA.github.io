@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squad Player Statistics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+    <style>
+        :root {
+            --blue-primary: rgba(0, 123, 255, 1);
+            --blue-glow: rgba(0, 123, 255, 0.2);
+            --blue-border: rgba(0, 123, 255, 0.8);
+            --border-color: #1e1e1e;
+            --background-dark: #1e1e1e;
+            --text-color: #e0e0e0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #121212;
+            color: var(--text-color);
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+        .checkbox-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .star-border-container {
+            display: inline-block;
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            padding: 16px 26px;
+            font-size: 18px;
+        }
+        .star-border-container button {
+            background: var(--background-dark);
+            border: 1px solid #222;
+            color: var(--text-color);
+            font-size: 18px;
+            text-align: center;
+            padding: 16px 26px;
+            border-radius: 20px;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+        .star-border-container.active button {
+            background: var(--blue-primary);
+        }
+        .border-gradient-bottom {
+            position: absolute;
+            width: 300%;
+            height: 50%;
+            opacity: 0.7;
+            bottom: -12px;
+            right: -250%;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--blue-primary), transparent 10%);
+            animation: star-movement-bottom 6s linear infinite alternate;
+            z-index: 0;
+        }
+        .border-gradient-top {
+            position: absolute;
+            width: 300%;
+            height: 50%;
+            opacity: 0.7;
+            top: -12px;
+            left: -250%;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--blue-primary), transparent 10%);
+            animation: star-movement-top 6s linear infinite alternate;
+            z-index: 0;
+        }
+        @keyframes star-movement-bottom {
+            0% { transform: translate(0%, 0%); opacity: 1; }
+            100% { transform: translate(-100%, 0%); opacity: 0; }
+        }
+        @keyframes star-movement-top {
+            0% { transform: translate(0%, 0%); opacity: 1; }
+            100% { transform: translate(100%, 0%); opacity: 0; }
+        }
+        .stats-grid, .chart-grid {
+            display: grid;
+            gap: 0.5em;
+            padding: 0.75em;
+            max-width: 1200px;
+        }
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            margin-bottom: 40px;
+        }
+        .chart-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .stat-bubble, .chart-bubble {
+            position: relative;
+            padding: 15px;
+            border-radius: 16px;
+            background: var(--background-dark);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 30px var(--blue-glow);
+            overflow: hidden;
+            --glow-x: 50%;
+            --glow-y: 50%;
+            --glow-intensity: 0.8;
+            --glow-radius: 400px;
+        }
+        .chart-bubble {
+            max-height: 350px;
+            min-height: 350px;
+        }
+        .stat-bubble--border-glow::after, .chart-bubble--border-glow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 6px;
+            background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+                rgba(0, 123, 255, calc(var(--glow-intensity) * 0.8)) 0%,
+                rgba(0, 123, 255, calc(var(--glow-intensity) * 0.4)) 30%,
+                transparent 60%);
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: subtract;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .stat-bubble {
+            text-align: center;
+            cursor: pointer;
+        }
+        .chart-bubble h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: var(--text-color);
+        }
+        .stat-title {
+            font-size: 14px;
+            color: #b0b0b0;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 300px;
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        #modal-content {
+            background: var(--background-dark);
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+            color: var(--text-color);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 30px var(--blue-glow);
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #modal-content--border-glow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 6px;
+            background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+                rgba(0, 123, 255, calc(var(--glow-intensity) * 0.8)) 0%,
+                rgba(0, 123, 255, calc(var(--glow-intensity) * 0.4)) 30%,
+                transparent 60%);
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: subtract;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            pointer-events: none;
+            z-index: 1;
+        }
+        #modal-canvas {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #b0b0b0;
+            transition: color 0.2s;
+        }
+        #close-modal:hover {
+            color: var(--blue-primary);
+        }
+        #modal-text h3 {
+            margin-top: 0;
+            color: var(--text-color);
+        }
+        #modal-text p {
+            margin: 0;
+            line-height: 1.5;
+        }
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--blue-primary);
+            box-shadow: 0 0 6px rgba(0, 123, 255, 0.6);
+            pointer-events: none;
+            z-index: 100;
+        }
+        .particle::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--blue-glow);
+            border-radius: 50%;
+            z-index: -1;
+        }
+        .global-spotlight {
+            position: fixed;
+            width: 800px;
+            height: 800px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle,
+                rgba(0, 123, 255, 0.15) 0%,
+                rgba(0, 123, 255, 0.08) 15%,
+                rgba(0, 123, 255, 0.04) 25%,
+                rgba(0, 123, 255, 0.02) 40%,
+                rgba(0, 123, 255, 0.01) 65%,
+                transparent 70%
+            );
+            z-index: 200;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            will-change: transform, opacity;
+        }
+        @media (max-width: 599px) {
+            .stats-grid, .chart-grid {
+                grid-template-columns: 1fr;
+                width: 90%;
+                margin: 0 auto;
+                padding: 0.5em;
+            }
+            .stat-bubble, .chart-bubble {
+                min-height: 180px;
+            }
+            .chart-bubble {
+                min-height: 300px;
+            }
+        }
+        @media (min-width: 600px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            .chart-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-tachometer-alt"></i> Squad Player Statistics</h1>
+        <div class="checkbox-container">
+            <div class="star-border-container active" id="includeAll"><button>Include All</button></div>
+            <div class="star-border-container" id="outlier1SD"><button>±1σ</button></div>
+            <div class="star-border-container" id="outlier2SD"><button>±2σ</button></div>
+            <div class="star-border-container" id="outlier3SD"><button>±3σ</button></div>
+            <div class="star-border-container" id="excludeSingle"><button>Exclude Squads of 1</button></div>
+        </div>
+        <div class="stats-section">
+            <h2><i class="fas fa-chart-bar"></i> Overall Statistics</h2>
+            <div class="stats-grid bento-section" id="stats-grid"></div>
+        </div>
+        <div class="chart-grid bento-section">
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-bar"></i> Current Day Squad Distribution (Squads >1)</h2>
+                <canvas id="squadDistChart"></canvas>
+            </div>
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-line"></i> Daily Total Active Players</h2>
+                <canvas id="dailyTotalChart"></canvas>
+            </div>
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-area"></i> Daily Active Squads</h2>
+                <canvas id="dailyActiveSquadsChart"></canvas>
+            </div>
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-bar"></i> Top 10 Largest Squads (Max Size)</h2>
+                <canvas id="topSquadsChart"></canvas>
+            </div>
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-bar"></i> Squad Size Histogram</h2>
+                <canvas id="histogramChart"></canvas>
+            </div>
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-line"></i> Average Squad Size Over Time</h2>
+                <canvas id="avgSquadSizeChart"></canvas>
+            </div>
+            <div class="chart-bubble chart-bubble--border-glow">
+                <h2><i class="fas fa-chart-bar"></i> Top 10 Squads by Total Player-Days</h2>
+                <canvas id="topSquadsTotalChart"></canvas>
+            </div>
+        </div>
+        <div id="modal" onclick="closeModal(event)">
+            <div id="modal-content" class="modal-content--border-glow">
+                <span id="close-modal">×</span>
+                <div id="modal-text"></div>
+                <canvas id="modal-canvas" style="display: none;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Magic Bento effects
+        const PARTICLE_COUNT = 12;
+        const SPOTLIGHT_RADIUS = 400;
+        const GLOW_COLOR = '0, 123, 255';
+        const grids = document.querySelectorAll('.bento-section');
+        const particles = new Map();
+        const timeouts = new Map();
+        let isInsideSection = false;
+
+        function createParticleElement(x, y) {
+            const el = document.createElement('div');
+            el.className = 'particle';
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            return el;
+        }
+
+        function clearAllParticles(card) {
+            const cardParticles = particles.get(card) || [];
+            const cardTimeouts = timeouts.get(card) || [];
+            cardTimeouts.forEach(clearTimeout);
+            timeouts.set(card, []);
+            cardParticles.forEach(particle => {
+                gsap.to(particle, {
+                    scale: 0,
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: 'back.in(1.7)',
+                    onComplete: () => particle.remove()
+                });
+            });
+            particles.set(card, []);
+        }
+
+        function animateParticles(card) {
+            const { width, height } = card.getBoundingClientRect();
+            const memoizedParticles = Array.from({ length: PARTICLE_COUNT }, () =>
+                createParticleElement(Math.random() * width, Math.random() * height)
+            );
+
+            memoizedParticles.forEach((particle, index) => {
+                const timeoutId = setTimeout(() => {
+                    if (!card.classList.contains('hovered')) return;
+                    const clone = particle.cloneNode(true);
+                    card.appendChild(clone);
+                    const cardParticles = particles.get(card) || [];
+                    cardParticles.push(clone);
+                    particles.set(card, cardParticles);
+
+                    gsap.fromTo(clone, { scale: 0, opacity: 0 }, {
+                        scale: 1,
+                        opacity: 1,
+                        duration: 0.3,
+                        ease: 'back.out(1.7)'
+                    });
+
+                    gsap.to(clone, {
+                        x: (Math.random() - 0.5) * 100,
+                        y: (Math.random() - 0.5) * 100,
+                        rotation: Math.random() * 360,
+                        duration: 2 + Math.random() * 2,
+                        ease: 'none',
+                        repeat: -1,
+                        yoyo: true
+                    });
+
+                    gsap.to(clone, {
+                        opacity: 0.3,
+                        duration: 1.5,
+                        ease: 'power2.inOut',
+                        repeat: -1,
+                        yoyo: true
+                    });
+                }, index * 100);
+                const cardTimeouts = timeouts.get(card) || [];
+                cardTimeouts.push(timeoutId);
+                timeouts.set(card, cardTimeouts);
+            });
+        }
+
+        function calculateSpotlightValues(radius) {
+            return {
+                proximity: radius * 0.5,
+                fadeDistance: radius * 0.75
+            };
+        }
+
+        function updateCardGlowProperties(card, mouseX, mouseY, radius) {
+            const rect = card.getBoundingClientRect();
+            const relativeX = ((mouseX - rect.left) / rect.width) * 100;
+            const relativeY = ((mouseY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--glow-x', `${relativeX}%`);
+            card.style.setProperty('--glow-y', `${relativeY}%`);
+            card.style.setProperty('--glow-radius', `${radius}px`);
+        }
+
+        const spotlight = document.createElement('div');
+        spotlight.className = 'global-spotlight';
+        document.body.appendChild(spotlight);
+
+        grids.forEach(grid => {
+            const cards = grid.querySelectorAll('.stat-bubble, .chart-bubble');
+            cards.forEach(card => {
+                particles.set(card, []);
+                timeouts.set(card, []);
+
+                card.addEventListener('mouseenter', () => {
+                    card.classList.add('hovered');
+                    animateParticles(card);
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.classList.remove('hovered');
+                    clearAllParticles(card);
+                });
+
+                card.addEventListener('click', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const maxDistance = Math.max(
+                        Math.hypot(x, y),
+                        Math.hypot(x - rect.width, y),
+                        Math.hypot(x, y - rect.height),
+                        Math.hypot(x - rect.width, y - rect.height)
+                    );
+
+                    const ripple = document.createElement('div');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${maxDistance * 2}px;
+                        height: ${maxDistance * 2}px;
+                        border-radius: 50%;
+                        background: radial-gradient(circle, rgba(${GLOW_COLOR}, 0.4) 0%, rgba(${GLOW_COLOR}, 0.2) 30%, transparent 70%);
+                        left: ${x - maxDistance}px;
+                        top: ${y - maxDistance}px;
+                        pointer-events: none;
+                        z-index: 1000;
+                    `;
+                    card.appendChild(ripple);
+                    gsap.fromTo(ripple, { scale: 0, opacity: 1 }, {
+                        scale: 1,
+                        opacity: 0,
+                        duration: 0.8,
+                        ease: 'power2.out',
+                        onComplete: () => ripple.remove()
+                    });
+                });
+            });
+
+            grid.addEventListener('mousemove', (e) => {
+                isInsideSection = true;
+                const { proximity, fadeDistance } = calculateSpotlightValues(SPOTLIGHT_RADIUS);
+                let minDistance = Infinity;
+
+                cards.forEach(card => {
+                    const cardRect = card.getBoundingClientRect();
+                    const centerX = cardRect.left + cardRect.width / 2;
+                    const centerY = cardRect.top + cardRect.height / 2;
+                    const distance = Math.hypot(e.clientX - centerX, e.clientY - centerY) - Math.max(cardRect.width, cardRect.height) / 2;
+                    const effectiveDistance = Math.max(0, distance);
+                    minDistance = Math.min(minDistance, effectiveDistance);
+                    updateCardGlowProperties(card, e.clientX, e.clientY, SPOTLIGHT_RADIUS);
+                });
+
+                gsap.to(spotlight, {
+                    left: e.clientX,
+                    top: e.clientY,
+                    duration: 0.1,
+                    ease: 'power2.out'
+                });
+
+                const targetOpacity = minDistance <= proximity ? 0.8 : minDistance <= fadeDistance ? ((fadeDistance - minDistance) / (fadeDistance - proximity)) * 0.8 : 0;
+                gsap.to(spotlight, {
+                    opacity: targetOpacity,
+                    duration: targetOpacity > 0 ? 0.2 : 0.5,
+                    ease: 'power2.out'
+                });
+            });
+
+            grid.addEventListener('mouseleave', () => {
+                isInsideSection = false;
+                gsap.to(spotlight, { opacity: 0, duration: 0.3, ease: 'power2.out' });
+            });
+        });
+
+        // Button interactions
+        const buttons = ['includeAll', 'outlier1SD', 'outlier2SD', 'outlier3SD'].map(id => document.getElementById(id));
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                buttons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                updateAll();
+            });
+        });
+
+        const excludeSingle = document.getElementById('excludeSingle');
+        excludeSingle.addEventListener('click', () => {
+            excludeSingle.classList.toggle('active');
+            updateAll();
+        });
+
+        // Modal close event listener for Esc key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeModal(event);
+            }
+        });
+
+        let globalData = { dates: [], squads: [] };
+        let charts = {};
+        let cachedStats = null;
+        let currentChart = null;
+
+        const statDescriptions = {
+            'Total Squads': 'Total number of unique squads in the dataset. Formula: Count of rows in CSV (excluding header).',
+            'Ever Active Squads': 'Number of squads that had at least one active player on any day. Formula: Count of squads where max(count) > 0.',
+            'Total Days': 'Total number of dates in the dataset. Formula: Count of columns in CSV (excluding "Squad" column).',
+            'Max Total Active Players': 'Maximum number of active players across all squads on any single day. Formula: max(sum(counts per day)). Date shown is when this occurred.',
+            'Min Total Active Players': 'Minimum number of active players across all squads on any single day. Formula: min(sum(counts per day)). Date shown is when this occurred.',
+            'Average Daily Total Players': 'Average number of active players per day across all days. Formula: mean(sum(counts per day)).',
+            'Median Daily Total Players': 'Median number of active players per day. Approximated as ceiling of (Q1 + Q3) / 2 for large datasets.',
+            'Std Dev Daily Total Players': 'Standard deviation of daily total active players. Formula: sqrt(variance(sum(counts per day))).',
+            'Variance Daily Total Players': 'Variance of daily total active players. Formula: var(sum(counts per day)).',
+            'Range Daily Total Players': 'Difference between max and min daily total active players. Formula: max - min.',
+            'Q1 Daily Total Players': 'First quartile (25th percentile) of daily total active players, approximated from a sample for large datasets.',
+            'Q3 Daily Total Players': 'Third quartile (75th percentile) of daily total active players, approximated from a sample for large datasets.',
+            'IQR Daily Total Players': 'Interquartile range of daily total active players. Formula: Q3 - Q1.',
+            'Mode Daily Total Players': 'Most frequent daily total active player count.',
+            'Max Squad Size': 'Maximum size of any squad on any day. Formula: max(all non-null counts).',
+            'Min Squad Size (non-zero)': 'Minimum non-zero size of any squad on any day. Formula: min(all counts > 0).',
+            'Average Squad Size': 'Average size of squads across all days and squads. Formula: mean(all non-null counts).',
+            'Median Squad Size': 'Median size of squads, approximated as ceiling of (Q1 + Q3) / 2 for large datasets.',
+            'Std Dev Squad Size': 'Standard deviation of squad sizes. Formula: sqrt(var(all non-null counts)).',
+            'Variance Squad Size': 'Variance of squad sizes. Formula: var(all non-null counts).',
+            'Range Squad Size': 'Difference between max and min squad sizes. Formula: max - min.',
+            'Q1 Squad Size': 'First quartile of squad sizes, approximated from a sample.',
+            'Q3 Squad Size': 'Third quartile of squad sizes, approximated from a sample.',
+            'IQR Squad Size': 'Interquartile range of squad sizes. Formula: Q3 - Q1.',
+            'Mode Squad Size': 'Most frequent squad size. Excludes sizes of 1 when "Exclude Squads of 1" is enabled.',
+            'Max Active Squads': 'Maximum number of active squads on any day. Formula: max(count of squads with count > 0 per day). Date shown.',
+            'Min Active Squads': 'Minimum number of active squads on any day. Formula: min(count of squads with count > 0 per day). Date shown.',
+            'Average Active Squads': 'Average number of active squads per day. Formula: mean(count of squads with count > 0 per day).',
+            'Total Player-Days': 'Total sum of all player counts across all squads and days. Formula: sum(all non-null counts).',
+            'Growth Rate (First to Last Day)': 'Percentage change in total active players from first to last day. Formula: ((last - first) / first) * 100.'
+        };
+
+        window.onload = function() {
+            // Ensure modal elements exist
+            const modalContent = document.getElementById('modal-content');
+            if (!modalContent) {
+                console.error('Modal content element not found');
+                return;
+            }
+
+            // Prevent resize observer loops
+            window.addEventListener('resize', () => {
+                Object.keys(charts).forEach(id => {
+                    if (charts[id] && id !== 'modal') {
+                        charts[id].resize();
+                    }
+                });
+                if (currentChart) {
+                    const modalCanvas = document.getElementById('modal-canvas');
+                    const config = charts[currentChart].config;
+                    const aspectRatio = config.options.aspectRatio || 2;
+                    const maxWidth = window.innerWidth * 0.9;
+                    const maxHeight = window.innerHeight * 0.9 - 60; // Subtract for title and close button
+                    let canvasWidth, canvasHeight;
+                    if (maxWidth / aspectRatio <= maxHeight) {
+                        canvasWidth = maxWidth;
+                        canvasHeight = canvasWidth / aspectRatio;
+                    } else {
+                        canvasHeight = maxHeight;
+                        canvasWidth = canvasHeight * aspectRatio;
+                    }
+                    modalContent.style.width = `${canvasWidth + 40}px`;
+                    modalContent.style.height = `${canvasHeight + 60}px`;
+                    modalCanvas.style.width = `${canvasWidth}px`;
+                    modalCanvas.style.height = `${canvasHeight}px`;
+                    if (charts['modal']) charts['modal'].resize();
+                }
+            });
+
+            if (cachedStats) {
+                globalData = cachedStats;
+                updateAll();
+                return;
+            }
+
+            fetch('../../data/playerdb.csv')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text();
+                })
+                .then(csvData => {
+                    const rows = csvData.split('\n');
+                    const headers = rows[0].split(',').map(header => header.trim());
+                    globalData.dates = headers.slice(1);
+                    globalData.squads = rows.slice(1).filter(row => row.trim()).map(row => {
+                        const parts = row.split(',').map(value => value.trim());
+                        return {
+                            name: parts[0],
+                            counts: parts.slice(1).map(value => (value ? parseInt(value) : null))
+                        };
+                    });
+                    cachedStats = globalData;
+                    updateAll();
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('stats-grid').innerHTML = '<div class="stat-bubble stat-bubble--border-glow"><p>Error loading data.</p></div>';
+                });
+        };
+
+        function calculateStats(data, len, isDailyTotals = false) {
+            let min = Infinity, max = -Infinity, sum = 0, count = 0;
+            const freq = new Map();
+            let mode = null, maxFreq = 0;
+
+            for (let i = 0; i < len; i++) {
+                const v = data[i];
+                if (v !== null && (!isDailyTotals || v !== undefined)) {
+                    if (v < min) min = v;
+                    if (v > max) max = v;
+                    sum += v;
+                    count++;
+                    const f = (freq.get(v) || 0) + 1;
+                    freq.set(v, f);
+                    if (f > maxFreq) {
+                        maxFreq = f;
+                        mode = v;
+                    }
+                }
+            }
+
+            const mean = count > 0 ? sum / count : 0;
+            let variance = 0;
+            for (let i = 0; i < len; i++) {
+                const v = data[i];
+                if (v !== null && (!isDailyTotals || v !== undefined)) {
+                    variance += Math.pow(v - mean, 2);
+                }
+            }
+            variance = count > 0 ? variance / count : 0;
+            const stdDev = Math.sqrt(variance);
+
+            const sampleSize = Math.min(len, 1000);
+            const sortedSample = [];
+            for (let i = 0; i < len && sortedSample.length < sampleSize; i++) {
+                const v = data[i];
+                if (v !== null && (!isDailyTotals || v !== undefined)) {
+                    sortedSample.push(v);
+                }
+            }
+            sortedSample.sort((a, b) => a - b);
+            const q1 = sortedSample[Math.floor(sampleSize / 4)] || 0;
+            const q3 = sortedSample[Math.floor(3 * sampleSize / 4)] || 0;
+
+            return { min, max, mean, variance, stdDev, q1, q3, mode, count };
+        }
+
+        function getOutlierFilter() {
+            if (document.getElementById('includeAll').classList.contains('active')) return 0;
+            if (document.getElementById('outlier1SD').classList.contains('active')) return 1;
+            if (document.getElementById('outlier2SD').classList.contains('active')) return 2;
+            if (document.getElementById('outlier3SD').classList.contains('active')) return 3;
+            return 0;
+        }
+
+        function updateAll() {
+            const sigma = getOutlierFilter();
+            const excludeSingle = document.getElementById('excludeSingle').classList.contains('active');
+            let { dates, squads } = globalData;
+
+            if (excludeSingle) {
+                squads = squads.filter(sq => {
+                    const maxCount = sq.counts.filter(c => c !== null).reduce((max, c) => Math.max(max, c), 0);
+                    return maxCount > 1;
+                });
+            }
+
+            if (!squads.length || !dates.length) {
+                document.getElementById('stats-grid').innerHTML = '<div class="stat-bubble stat-bubble--border-glow"><p>No data available</p></div>';
+                ['squadDistChart', 'dailyTotalChart', 'dailyActiveSquadsChart', 'topSquadsChart', 'histogramChart', 'avgSquadSizeChart', 'topSquadsTotalChart'].forEach(id => {
+                    const ctx = document.getElementById(id)?.getContext('2d');
+                    if (ctx) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    if (charts[id]) charts[id].destroy();
+                });
+                return;
+            }
+
+            const dailyTotals = new Array(dates.length).fill(0);
+            const dailyActiveSquads = new Array(dates.length).fill(0);
+            const allCounts = [];
+            let sumAll = 0, countAll = 0;
+
+            squads.forEach(sq => {
+                sq.counts.forEach((c, i) => {
+                    if (c !== null) {
+                        dailyTotals[i] += c;
+                        if (c > 0) dailyActiveSquads[i]++;
+                        if (allCounts.length < 100000) allCounts.push(c);
+                        sumAll += c;
+                        countAll++;
+                    }
+                });
+            });
+
+            let filteredCounts = allCounts;
+            let filteredDailyTotals = dailyTotals;
+            let filteredActiveSquads = dailyActiveSquads;
+            let lowerBound = -Infinity, upperBound = Infinity;
+
+            if (excludeSingle) {
+                filteredCounts = filteredCounts.filter(c => c > 1);
+            }
+
+            if (sigma > 0 && countAll > 0) {
+                const meanAll = sumAll / countAll;
+                let varianceAll = 0;
+                filteredCounts.forEach(v => varianceAll += Math.pow(v - meanAll, 2));
+                varianceAll /= countAll;
+                const stdDevAll = Math.sqrt(varianceAll);
+                lowerBound = meanAll - sigma * stdDevAll;
+                upperBound = meanAll + sigma * stdDevAll;
+
+                filteredCounts = filteredCounts.filter(c => c >= lowerBound && c <= upperBound);
+                filteredDailyTotals = new Array(dates.length).fill(0);
+                filteredActiveSquads = new Array(dates.length).fill(0);
+                squads.forEach(sq => {
+                    sq.counts.forEach((c, i) => {
+                        if (c !== null && c >= lowerBound && c <= upperBound) {
+                            filteredDailyTotals[i] += c;
+                            if (c > 0) filteredActiveSquads[i]++;
+                        }
+                    });
+                });
+            }
+
+            const allNonZeroCounts = filteredCounts.filter(c => c > 0);
+
+            const dailyStats = calculateStats(filteredDailyTotals, dates.length, true);
+            const dateMaxTotal = dates[filteredDailyTotals.indexOf(dailyStats.max)] || 'N/A';
+            const dateMinTotal = dates[filteredDailyTotals.indexOf(dailyStats.min)] || 'N/A';
+            const iqrDaily = dailyStats.q3 - dailyStats.q1;
+
+            const squadStats = calculateStats(filteredCounts, filteredCounts.length);
+            const iqrSquad = squadStats.q3 - squadStats.q1;
+
+            const activeSquadStats = calculateStats(filteredActiveSquads, dates.length, true);
+            const dateMaxActive = dates[filteredActiveSquads.indexOf(activeSquadStats.max)] || 'N/A';
+            const dateMinActive = dates[filteredActiveSquads.indexOf(activeSquadStats.min)] || 'N/A';
+
+            const totalSquads = squads.length;
+            const totalDays = dates.length;
+            const everActiveSquads = squads.filter(sq => sq.counts.some(c => (c || 0) > 0)).length;
+            const totalPlayerDays = filteredCounts.reduce((a, b) => a + b, 0) || 0;
+            const growthRate = filteredDailyTotals.length > 1 && filteredDailyTotals[0] !== 0
+                ? ((filteredDailyTotals[filteredDailyTotals.length - 1] - filteredDailyTotals[0]) / filteredDailyTotals[0] * 100).toFixed(2)
+                : 0;
+
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = '';
+            const stats = [
+                { title: 'Total Squads', value: totalSquads },
+                { title: 'Ever Active Squads', value: everActiveSquads },
+                { title: 'Total Days', value: totalDays },
+                { title: 'Max Total Active Players', value: `${dailyStats.max} (on ${dateMaxTotal})` },
+                { title: 'Min Total Active Players', value: `${dailyStats.min} (on ${dateMinTotal})` },
+                { title: 'Average Daily Total Players', value: dailyStats.mean.toFixed(2) },
+                { title: 'Median Daily Total Players', value: Math.ceil((dailyStats.q1 + dailyStats.q3) / 2) },
+                { title: 'Std Dev Daily Total Players', value: dailyStats.stdDev.toFixed(2) },
+                { title: 'Variance Daily Total Players', value: dailyStats.variance.toFixed(2) },
+                { title: 'Range Daily Total Players', value: dailyStats.max - dailyStats.min },
+                { title: 'Q1 Daily Total Players', value: dailyStats.q1.toFixed(2) },
+                { title: 'Q3 Daily Total Players', value: dailyStats.q3.toFixed(2) },
+                { title: 'IQR Daily Total Players', value: iqrDaily.toFixed(2) },
+                { title: 'Mode Daily Total Players', value: dailyStats.mode || 'N/A' },
+                { title: 'Max Squad Size', value: squadStats.max },
+                { title: 'Min Squad Size (non-zero)', value: squadStats.min || 'N/A' },
+                { title: 'Average Squad Size', value: squadStats.mean.toFixed(2) },
+                { title: 'Median Squad Size', value: Math.ceil((squadStats.q1 + squadStats.q3) / 2) },
+                { title: 'Std Dev Squad Size', value: squadStats.stdDev.toFixed(2) },
+                { title: 'Variance Squad Size', value: squadStats.variance.toFixed(2) },
+                { title: 'Range Squad Size', value: squadStats.max - squadStats.min },
+                { title: 'Q1 Squad Size', value: squadStats.q1.toFixed(2) },
+                { title: 'Q3 Squad Size', value: squadStats.q3.toFixed(2) },
+                { title: 'IQR Squad Size', value: iqrSquad.toFixed(2) },
+                { title: 'Mode Squad Size', value: squadStats.mode || 'N/A' },
+                { title: 'Max Active Squads', value: `${activeSquadStats.max} (on ${dateMaxActive})` },
+                { title: 'Min Active Squads', value: `${activeSquadStats.min} (on ${dateMinActive})` },
+                { title: 'Average Active Squads', value: activeSquadStats.mean.toFixed(2) },
+                { title: 'Total Player-Days', value: totalPlayerDays },
+                { title: 'Growth Rate (First to Last Day)', value: `${growthRate}%` }
+            ];
+            stats.forEach(stat => {
+                const bubble = document.createElement('div');
+                bubble.className = 'stat-bubble stat-bubble--border-glow';
+                bubble.innerHTML = `<div class="stat-title">${stat.title}</div><div class="stat-value">${stat.value}</div>`;
+                bubble.onclick = () => showModal(stat.title, statDescriptions[stat.title] || 'No description available.');
+                statsGrid.appendChild(bubble);
+            });
+
+            updateSquadDistChart(dates, squads);
+            updateLineChart('dailyTotalChart', dates, filteredDailyTotals, 'Daily Total Active Players', '#007bff');
+            updateLineChart('dailyActiveSquadsChart', dates, filteredActiveSquads, 'Daily Active Squads', '#007bff');
+            updateBarChart('topSquadsChart', squads);
+            updateHistogramChart(allNonZeroCounts);
+            updateLineChart('avgSquadSizeChart', dates, filteredDailyTotals.map((t, i) => filteredActiveSquads[i] > 0 ? t / filteredActiveSquads[i] : 0), 'Average Squad Size Over Time', '#007bff');
+            updateBarChartTotal('topSquadsTotalChart', squads);
+        }
+
+        function showModal(title, description) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+            const modalText = document.getElementById('modal-text');
+            const modalCanvas = document.getElementById('modal-canvas');
+
+            if (!modal || !modalContent || !modalText || !modalCanvas) {
+                console.error('Modal elements not found:', { modal, modalContent, modalText, modalCanvas });
+                return;
+            }
+
+            modalText.innerHTML = `<h3>${title}</h3><p>${description}</p>`;
+            modalText.style.display = 'block';
+            modalCanvas.style.display = 'none';
+
+            const existingH2 = modalContent.getElementsByTagName('h2')[0];
+            if (existingH2) existingH2.remove();
+
+            modal.style.display = 'flex';
+            currentChart = null;
+        }
+
+        function showChartModal(chartId, title, config) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modal-content');
+            const modalText = document.getElementById('modal-text');
+            const modalCanvas = document.getElementById('modal-canvas');
+
+            if (!modal || !modalContent || !modalText || !modalCanvas) {
+                console.error('Modal elements not found:', { modal, modalContent, modalText, modalCanvas });
+                return;
+            }
+
+            modalText.style.display = 'none';
+            modalCanvas.style.display = 'block';
+
+            const existingH2 = modalContent.getElementsByTagName('h2')[0];
+            if (existingH2) existingH2.remove();
+
+            const titleEl = document.createElement('h2');
+            titleEl.textContent = title;
+            titleEl.style.cssText = 'font-size: 18px; margin-bottom: 10px; text-align: center; color: var(--text-color);';
+            modalContent.insertBefore(titleEl, modalCanvas);
+
+            if (charts['modal']) charts['modal'].destroy();
+
+            config.options.maintainAspectRatio = true;
+            config.options.responsive = true;
+
+            const aspectRatio = config.options.aspectRatio || 2;
+            config.options.aspectRatio = aspectRatio;
+
+            const availableWidth = Math.min(window.innerWidth * 0.9, 1000);
+            const availableHeight = Math.min(window.innerHeight * 0.9 - 60, 600); // Subtract for title, close, padding
+
+            let canvasWidth, canvasHeight;
+            if (chartId === 'squadDistChart') {
+                // Adjust for horizontal bar chart
+                canvasHeight = Math.min(availableHeight, availableWidth * 1.5);
+                canvasWidth = canvasHeight / 1.5;
+            } else {
+                if (availableWidth / aspectRatio <= availableHeight) {
+                    canvasWidth = availableWidth;
+                    canvasHeight = canvasWidth / aspectRatio;
+                } else {
+                    canvasHeight = availableHeight;
+                    canvasWidth = canvasHeight * aspectRatio;
+                }
+            }
+
+            modalContent.style.width = `${canvasWidth + 40}px`;
+            modalContent.style.height = `${canvasHeight + 60}px`;
+            modalCanvas.style.width = `${canvasWidth}px`;
+            modalCanvas.style.height = `${canvasHeight}px`;
+
+            // Adjust scales for squadDistChart in modal
+            if (chartId === 'squadDistChart') {
+                config.options.scales.y.ticks = {
+                    ...config.options.scales.y.ticks,
+                    maxTicksLimit: 20,
+                    font: { size: 12 },
+                    padding: 5
+                };
+                config.options.scales.x.ticks = {
+                    ...config.options.scales.x.ticks,
+                    maxTicksLimit: 10
+                };
+                config.options.plugins.legend.display = false;
+                config.options.elements.bar.maxBarThickness = 20;
+            }
+
+            charts['modal'] = new Chart(modalCanvas, config);
+            modal.style.display = 'flex';
+            currentChart = chartId;
+        }
+
+        function closeModal(event) {
+            const modal = document.getElementById('modal');
+            if (!modal) return;
+
+            if (event.target.id === 'modal' || event.target.id === 'close-modal' || event.key === 'Escape') {
+                modal.style.display = 'none';
+                if (charts['modal']) charts['modal'].destroy();
+                currentChart = null;
+            }
+        }
+
+        function updateSquadDistChart(dates, squads) {
+            const ctx = document.getElementById('squadDistChart')?.getContext('2d');
+            if (!ctx) return;
+            if (charts.squadDist) charts.squadDist.destroy();
+
+            const lastDayIdx = dates.length - 1;
+            let currentSquads = squads.filter(sq => (sq.counts[lastDayIdx] || 0) > 1);
+            if (currentSquads.length === 0) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                return;
+            }
+
+            currentSquads.sort((a, b) => (b.counts[lastDayIdx] || 0) - (a.counts[lastDayIdx] || 0));
+            const labels = currentSquads.map(sq => sq.name);
+            const data = currentSquads.map(sq => sq.counts[lastDayIdx] || 0);
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Squad Sizes',
+                        data,
+                        backgroundColor: '#007bff',
+                        borderWidth: 0,
+                        maxBarThickness: 20
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 1.5, // Increased to give more vertical space
+                    plugins: {
+                        tooltip: {
+                            mode: 'nearest',
+                            intersect: false,
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            callbacks: {
+                                label: tooltipItem => {
+                                    const value = tooltipItem.parsed.x;
+                                    const total = data.reduce((sum, d) => sum + d, 0);
+                                    return `${tooltipItem.label}: ${(value / total * 100).toFixed(2)}% (${value})`;
+                                }
+                            }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#e0e0e0', maxTicksLimit: 10 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: {
+                                color: '#e0e0e0',
+                                maxTicksLimit: 20, // Increased to show more labels
+                                font: { size: 10 },
+                                padding: 5
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            left: 10,
+                            right: 10,
+                            top: 10,
+                            bottom: 10
+                        }
+                    }
+                }
+            };
+            charts.squadDist = new Chart(ctx, config);
+            ctx.canvas.onclick = () => showChartModal('squadDistChart', 'Current Day Squad Distribution (Squads >1)', config);
+        }
+
+        function updateLineChart(id, labels, data, label, color) {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (!ctx) return;
+            if (charts[id]) charts[id].destroy();
+
+            const config = {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label,
+                        data,
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    interaction: { mode: 'nearest', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0', font: { size: 12 } } },
+                        tooltip: { 
+                            mode: 'nearest', 
+                            intersect: false,
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0', maxTicksLimit: 10 } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0', maxTicksLimit: 10 } }
+                    }
+                }
+            };
+            charts[id] = new Chart(ctx, config);
+            ctx.canvas.onclick = () => showChartModal(id, label, config);
+        }
+
+        function updateBarChart(id, squads) {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (!ctx) return;
+            if (charts[id]) charts[id].destroy();
+
+            const maxSizes = [];
+            squads.forEach(sq => {
+                const validCounts = sq.counts.filter(c => c !== null);
+                if (validCounts.length > 0) {
+                    const max = Math.max(...validCounts);
+                    if (max > 0) maxSizes.push({ name: sq.name, max });
+                }
+            });
+            maxSizes.sort((a, b) => b.max - a.max);
+            const top10 = maxSizes.slice(0, Math.min(10, maxSizes.length));
+
+            const labels = top10.map(s => s.name);
+            const data = top10.map(s => s.max);
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'Max Size', data, backgroundColor: '#007bff' }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    interaction: { mode: 'nearest', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0', font: { size: 12 } } },
+                        tooltip: { 
+                            mode: 'nearest', 
+                            intersect: false,
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0', maxTicksLimit: 10 } },
+                        x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0' } }
+                    }
+                }
+            };
+            charts[id] = new Chart(ctx, config);
+            ctx.canvas.onclick = () => showChartModal(id, 'Top 10 Largest Squads (Max Size)', config);
+        }
+
+        function updateHistogramChart(counts) {
+            const ctx = document.getElementById('histogramChart')?.getContext('2d');
+            if (!ctx) return;
+            if (charts.histogram) charts.histogram.destroy();
+
+            if (!counts.length) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                return;
+            }
+
+            const sampleSize = Math.min(counts.length, 10000);
+            const sampledCounts = counts.slice(0, sampleSize);
+            const max = Math.max(...sampledCounts, -Infinity);
+            const bins = Math.min(10, Math.ceil(Math.sqrt(sampleSize)));
+            const binSize = Math.max(1, Math.ceil(max / bins));
+            const histogram = new Array(bins).fill(0);
+
+            sampledCounts.forEach(c => {
+                if (c !== null && c !== undefined) {
+                    const bin = Math.min(Math.floor(c / binSize), bins - 1);
+                    histogram[bin]++;
+                }
+            });
+
+            const labels = histogram.map((_, i) => `${i * binSize}-${(i + 1) * binSize - 1}`);
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'Frequency', data: histogram, backgroundColor: '#007bff' }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    interaction: { mode: 'nearest', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0', font: { size: 12 } } },
+                        tooltip: { 
+                            mode: 'nearest', 
+                            intersect: false,
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0', maxTicksLimit: 10 } },
+                        x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0' } }
+                    }
+                }
+            };
+            charts.histogram = new Chart(ctx, config);
+            ctx.canvas.onclick = () => showChartModal('histogramChart', 'Squad Size Histogram', config);
+        }
+
+        function updateBarChartTotal(id, squads) {
+            const ctx = document.getElementById(id)?.getContext('2d');
+            if (!ctx) return;
+            if (charts[id]) charts[id].destroy();
+
+            const totalSizes = [];
+            squads.forEach(sq => {
+                const total = sq.counts.reduce((a, c) => a + (c || 0), 0);
+                if (total > 0) totalSizes.push({ name: sq.name, total });
+            });
+            totalSizes.sort((a, b) => b.total - a.total);
+            const top10 = totalSizes.slice(0, Math.min(10, totalSizes.length));
+
+            const labels = top10.map(s => s.name);
+            const data = top10.map(s => s.total);
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'Total Player-Days', data, backgroundColor: '#007bff' }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    interaction: { mode: 'nearest', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0', font: { size: 12 } } },
+                        tooltip: { 
+                            mode: 'nearest', 
+                            intersect: false,
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0', maxTicksLimit: 10 } },
+                        x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#e0e0e0' } }
+                    }
+                }
+            };
+            charts[id] = new Chart(ctx, config);
+            ctx.canvas.onclick = () => showChartModal(id, 'Top 10 Squads by Total Player-Days', config);
+        }
+    </script>
+</body>
+</html>
