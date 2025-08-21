@@ -59,7 +59,7 @@
     </form>
     <p id="status"></p>
     <script>
-        const supabase = Supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
+        const supabase = Supabase.createClient('{{SUPABASE_URL}}', '{{SUPABASE_ANON_KEY}}');
 
         async function signup() {
             const email = document.getElementById('email').value;
