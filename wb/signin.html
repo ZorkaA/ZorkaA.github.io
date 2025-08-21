@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sign In</h1>
+    <form id="login-form">
+        <label for="email">Email:</label>
+        <input id="email" name="email" type="email" required />
+        <label for="password">Password:</label>
+        <input id="password" name="password" type="password" required />
+        <button type="submit" onclick="login()">Log In</button>
+        <button type="submit" onclick="signup()">Sign Up</button>
+    </form>
+    <form id="token-form" style="display: none;">
+        <label for="ign">In-Game Name:</label>
+        <input id="ign" name="ign" type="text" required />
+        <label for="token">Game Token:</label>
+        <input id="token" name="token" type="text" required />
+        <button type="submit" onclick="verifyToken()">Verify Token</button>
+    </form>
+    <p id="status"></p>
+    <script>
+        const supabase = Supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
+
+        async function signup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            } else {
+                document.getElementById('status').textContent = 'Sign-up successful! Please log in.';
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            } else {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('token-form').style.display = 'block';
+                document.getElementById('status').textContent = 'Logged in successfully!';
+            }
+        }
+
+        async function verifyToken() {
+            const ign = document.getElementById('ign').value;
+            const token = document.getElementById('token').value;
+            const status = document.getElementById('status');
+
+            try {
+                const response = await fetch(`https://store4.warbrokers.io/305//get_player_nick.php?token=${token}`);
+                const result = await response.text();
+                if (result === 'Error! Bad user') {
+                    status.textContent = 'Invalid token!';
+                } else if (result.trim() === ign.trim()) {
+                    const { error } = await supabase.from('user_tokens').insert({ 
+                        user_id: (await supabase.auth.getUser()).data.user.id, 
+                        ign, 
+                        token 
+                    });
+                    if (error) {
+                        status.textContent = `Error storing token: ${error.message}`;
+                    } else {
+                        status.textContent = 'Token verified and stored successfully!';
+                        startTokenVerification(ign, token);
+                    }
+                } else {
+                    status.textContent = 'Token does not match IGN!';
+                }
+            } catch (error) {
+                status.textContent = `Error verifying token: ${error.message}`;
+            }
+        }
+
+        function startTokenVerification(ign, token) {
+            let intervalId;
+            const verify = async () => {
+                try {
+                    const response = await fetch(`https://store4.warbrokers.io/305//get_player_nick.php?token=${token}`);
+                    const result = await response.text();
+                    if (result === 'Error! Bad user' || result.trim() !== ign.trim()) {
+                        document.getElementById('status').textContent = 'Token is no longer valid!';
+                        clearInterval(intervalId);
+                    }
+                } catch (error) {
+                    document.getElementById('status').textContent = `Error re-verifying token: ${error.message}`;
+                    clearInterval(intervalId);
+                }
+            };
+
+            intervalId = setInterval(verify, 30000);
+            verify();
+
+            window.addEventListener('console', (event) => {
+                if (event.detail === 'refresh') {
+                    verify();
+                }
+            });
+        }
+
+        (function () {
+            const oldLog = console.log;
+            console.log = function (message) {
+                oldLog.apply(console, arguments);
+                if (message === 'refresh') {
+                    window.dispatchEvent(new CustomEvent('console', { detail: 'refresh' }));
+                }
+            };
+        })();
+    </script>
+</body>
+</html>
