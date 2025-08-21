@@ -56,10 +56,11 @@
         <label for="token">Game Token:</label>
         <input id="token" name="token" type="text" required />
         <button type="submit" onclick="verifyToken()">Verify Token</button>
+        <button type="button" onclick="refreshToken()" style="margin-left: 10px;">Refresh Token</button>
     </form>
     <p id="status"></p>
     <script>
-        const supabase = Supabase.createClient('{{SUPABASE_URL}}', '{{SUPABASE_ANON_KEY}}');
+        const supabase = supabase.createClient('{{SUPABASE_URL}}', '{{SUPABASE_ANON_KEY}}');
 
         async function signup() {
             const email = document.getElementById('email').value;
@@ -117,13 +118,15 @@
 
         function startTokenVerification(ign, token) {
             let intervalId;
-            const verify = async () => {
+            window.refreshToken = async () => {
                 try {
                     const response = await fetch(`https://store4.warbrokers.io/305//get_player_nick.php?token=${token}`);
                     const result = await response.text();
                     if (result === 'Error! Bad user' || result.trim() !== ign.trim()) {
                         document.getElementById('status').textContent = 'Token is no longer valid!';
                         clearInterval(intervalId);
+                    } else {
+                        document.getElementById('status').textContent = 'Token re-verified successfully!';
                     }
                 } catch (error) {
                     document.getElementById('status').textContent = `Error re-verifying token: ${error.message}`;
@@ -131,25 +134,19 @@
                 }
             };
 
-            intervalId = setInterval(verify, 30000);
-            verify();
+            intervalId = setInterval(window.refreshToken, 30000);
+            window.refreshToken();
 
-            window.addEventListener('console', (event) => {
-                if (event.detail === 'refresh') {
-                    verify();
-                }
-            });
+            (function () {
+                const oldLog = console.log;
+                console.log = function (message) {
+                    oldLog.apply(console, arguments);
+                    if (message === 'refresh') {
+                        window.refreshToken();
+                    }
+                };
+            })();
         }
-
-        (function () {
-            const oldLog = console.log;
-            console.log = function (message) {
-                oldLog.apply(console, arguments);
-                if (message === 'refresh') {
-                    window.dispatchEvent(new CustomEvent('console', { detail: 'refresh' }));
-                }
-            };
-        })();
     </script>
 </body>
 </html>
