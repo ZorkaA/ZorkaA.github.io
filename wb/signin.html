@@ -60,12 +60,12 @@
     </form>
     <p id="status"></p>
     <script>
-        const supabase = supabase.createClient('{{SUPABASE_URL}}', '{{SUPABASE_ANON_KEY}}');
+        const supabaseClient = supabase.createClient('{{SUPABASE_URL}}', '{{SUPABASE_ANON_KEY}}');
 
         async function signup() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const { error } = await supabase.auth.signUp({ email, password });
+            const { error } = await supabaseClient.auth.signUp({ email, password });
             if (error) {
                 document.getElementById('status').textContent = `Error: ${error.message}`;
             } else {
@@ -76,7 +76,7 @@
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 document.getElementById('status').textContent = `Error: ${error.message}`;
             } else {
@@ -97,8 +97,8 @@
                 if (result === 'Error! Bad user') {
                     status.textContent = 'Invalid token!';
                 } else if (result.trim() === ign.trim()) {
-                    const { error } = await supabase.from('user_tokens').insert({ 
-                        user_id: (await supabase.auth.getUser()).data.user.id, 
+                    const { error } = await supabaseClient.from('user_tokens').insert({ 
+                        user_id: (await supabaseClient.auth.getUser()).data.user.id, 
                         ign, 
                         token 
                     });
