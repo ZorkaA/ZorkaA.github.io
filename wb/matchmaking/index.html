@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Team Balancing Demo</title>
+    <style>
+        body {
+            background-color: #333;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #inputWrapper {
+            position: relative;
+            flex: 1;
+        }
+        #playerInput {
+            width: 100%;
+            padding: 10px;
+            background: #444;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        #addPlayer, #addGuest {
+            padding: 10px 20px;
+            background: #007bff;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        #addPlayer:hover, #addGuest:hover {
+            background: #0056b3;
+        }
+        #playerCount {
+            display: inline-block;
+            margin-left: 10px;
+            background: #555;
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-size: 14px;
+        }
+        #playerCount.invalid {
+            background: #ff0000;
+            color: #fff;
+        }
+        #searchResults {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #444;
+            border: 1px solid #555;
+            border-radius: 5px;
+            display: none;
+            z-index: 10;
+        }
+        #searchResults ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #searchResults li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #555;
+        }
+        #searchResults li:hover {
+            background: #555;
+        }
+        #playerPool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #444;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        .playerBubble {
+            background: #555;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            width: 150px;
+        }
+        .playerBubble .name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .playerBubble .uid {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .playerBubble.selected {
+            border: 2px solid #28a745;
+            box-shadow: 0 0 10px #28a745;
+        }
+        #options {
+            margin-bottom: 20px;
+        }
+        #priority {
+            padding: 10px;
+            background: #444;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+        }
+        #go {
+            padding: 10px 40px;
+            background: #28a745;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        #go:hover {
+            background: #218838;
+        }
+        #progress {
+            margin-bottom: 20px;
+        }
+        #results {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: #444;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        #teamA, #teamB {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #teamA h3, #teamB h3 {
+            text-align: center;
+            margin: 0;
+        }
+        .teamBubble {
+            background: #555;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default;
+        }
+        .teamBubble.clickable {
+            cursor: pointer;
+        }
+        .teamBubble.clickable:hover {
+            background: #666;
+        }
+        .teamBubble .left {
+            text-align: left;
+        }
+        .teamBubble .name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .teamBubble .uid {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .teamBubble .right {
+            text-align: right;
+            font-size: 14px;
+        }
+        #balances {
+            width: 100%;
+            margin-top: 20px;
+            text-align: center;
+        }
+        #modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+        #modalContent {
+            background: #444;
+            padding: 20px;
+            border-radius: 5px;
+            width: 300px;
+            position: relative;
+        }
+        #modal label {
+            display: block;
+            margin-top: 10px;
+        }
+        #closeModal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        #modal input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 5px 0 10px 0;
+            background: #555;
+            border: 1px solid #666;
+            color: #fff;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        #modalButtons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        #modalButtons button {
+            padding: 10px 20px;
+            background: #007bff;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #modalButtons button:hover {
+            background: #0056b3;
+        }
+        #doneBtn {
+            background: #28a745;
+        }
+        #doneBtn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div id="inputWrapper">
+            <input id="playerInput" placeholder="Enter Name or UID">
+            <div id="searchResults"></div>
+        </div>
+        <button id="addPlayer">Add Player</button>
+        <button id="addGuest">Add Guest</button>
+    </div>
+    <div id="playerPool"></div>
+    <div id="options">
+        <select id="priority">
+            <option value="equal_teams">Prioritize equal teams</option>
+            <option value="equal_balancing">Prioritize equal balancing</option>
+        </select>
+        <div class="slider-container">
+            <label for="maxDiff">Max team size difference:</label>
+            <input type="range" id="maxDiff" min="1" max="5" value="5">
+            <span id="maxDiffVal">5</span>
+        </div>
+        <div class="slider-container">
+            <label for="importance">Importance of Kills ELO (%):</label>
+            <input type="range" id="importance" min="0" max="100" value="50">
+            <span id="impVal">50%</span>
+        </div>
+        <button id="go">GO</button>
+        <div id="playerCount">0/16</div>
+    </div>
+    <div id="progress" style="display: none;">
+        <progress id="progBar" value="0" max="100"></progress>
+    </div>
+    <div id="results" style="display: none;">
+        <div id="teamA">
+            <h3>Team A</h3>
+        </div>
+        <div id="teamB">
+            <h3>Team B</h3>
+        </div>
+        <div id="balances"></div>
+    </div>
+    <div id="modal">
+        <div id="modalContent">
+            <span id="closeModal">&times;</span>
+            <label>Name:</label>
+            <input id="guestName" placeholder="Guest name">
+            <label>Kills ELO:</label>
+            <input id="guestKills" type="number" placeholder="1500">
+            <label>Games ELO:</label>
+            <input id="guestGames" type="number" placeholder="1500">
+            <div id="modalButtons">
+                <button id="randomize">Randomize</button>
+                <button id="doneBtn">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function debounce(func, delay) {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func(...args), delay);
+            };
+        }
+
+        function gaussianRand(mean, std) {
+            const u = 1 - Math.random();
+            const v = Math.random();
+            const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z * std + mean;
+        }
+
+        const players = []; // {uid, nick, squad, killsELO, gamesELO, selected: false}
+        const playerPool = document.getElementById('playerPool');
+        const searchResults = document.getElementById('searchResults');
+        const playerInput = document.getElementById('playerInput');
+        const addPlayerBtn = document.getElementById('addPlayer');
+        const addGuestBtn = document.getElementById('addGuest');
+        const playerCount = document.getElementById('playerCount');
+        const maxDiffSlider = document.getElementById('maxDiff');
+        const maxDiffVal = document.getElementById('maxDiffVal');
+        const importanceSlider = document.getElementById('importance');
+        const impVal = document.getElementById('impVal');
+        const prioritySelect = document.getElementById('priority');
+        const goBtn = document.getElementById('go');
+        const progressDiv = document.getElementById('progress');
+        const progBar = document.getElementById('progBar');
+        const resultsDiv = document.getElementById('results');
+        const teamA = document.getElementById('teamA');
+        const teamB = document.getElementById('teamB');
+        const balances = document.getElementById('balances');
+        const modal = document.getElementById('modal');
+        const closeModal = document.getElementById('closeModal');
+        const guestName = document.getElementById('guestName');
+        const guestKills = document.getElementById('guestKills');
+        const guestGames = document.getElementById('guestGames');
+        const randomizeBtn = document.getElementById('randomize');
+        const doneBtn = document.getElementById('doneBtn');
+
+        maxDiffSlider.addEventListener('input', () => {
+            maxDiffVal.textContent = maxDiffSlider.value;
+        });
+
+        importanceSlider.addEventListener('input', () => {
+            impVal.textContent = `${importanceSlider.value}%`;
+        });
+
+        playerInput.addEventListener('input', debounce(async () => {
+            const value = playerInput.value.trim();
+            if (value.length < 2) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            const uidRegex = /^[0-9a-f]{24}$/i;
+            if (uidRegex.test(value)) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            await searchByName(value);
+        }, 300));
+
+        playerInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const value = playerInput.value.trim();
+                const uidRegex = /^[0-9a-f]{24}$/i;
+                if (uidRegex.test(value)) {
+                    await addPlayer(value);
+                    playerInput.value = '';
+                }
+            }
+        });
+
+        addPlayerBtn.addEventListener('click', async () => {
+            const value = playerInput.value.trim();
+            if (!value) return;
+            const uidRegex = /^[0-9a-f]{24}$/i;
+            if (uidRegex.test(value)) {
+                await addPlayer(value);
+                playerInput.value = '';
+            } else {
+                await searchByName(value);
+            }
+        });
+
+        addGuestBtn.addEventListener('click', () => {
+            randomizeGuest();
+            modal.style.display = 'flex';
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        randomizeBtn.addEventListener('click', randomizeGuest);
+
+        doneBtn.addEventListener('click', () => {
+            const name = guestName.value.trim() || 'Guest';
+            const kills = parseFloat(guestKills.value) || 1500;
+            const games = parseFloat(guestGames.value) || 1500;
+            const player = {
+                uid: '',
+                nick: name,
+                squad: '',
+                killsELO: kills,
+                gamesELO: games,
+                selected: false
+            };
+            players.push(player);
+            renderPlayerBubble(player);
+            modal.style.display = 'none';
+        });
+
+        function randomizeGuest() {
+            const randNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            guestName.value = `Guest6${randNum}6`;
+            guestKills.value = Math.round(gaussianRand(1500, 170));
+            guestGames.value = Math.round(gaussianRand(1500, 190));
+        }
+
+        async function searchByName(query) {
+            try {
+                const res = await fetch(`https://wbapi.wbpjs.com/players/searchByName?query=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                searchResults.innerHTML = '';
+                if (data.length === 0) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+                const ul = document.createElement('ul');
+                data.forEach(player => {
+                    const li = document.createElement('li');
+                    li.textContent = `${player.nick} (${player.uid})`;
+                    li.dataset.uid = player.uid;
+                    li.addEventListener('click', async () => {
+                        await addPlayer(player.uid);
+                        searchResults.innerHTML = '';
+                        searchResults.style.display = 'none';
+                        playerInput.value = '';
+                    });
+                    ul.appendChild(li);
+                });
+                searchResults.appendChild(ul);
+                searchResults.style.display = 'block';
+            } catch (err) {
+                alert('Error searching players.');
+            }
+        }
+
+        async function addPlayer(uid) {
+            if (players.find(p => p.uid === uid)) {
+                alert('Player already added.');
+                return;
+            }
+            try {
+                const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+                const data = await res.json();
+                const player = {
+                    uid: data.uid,
+                    nick: data.nick,
+                    squad: data.squad || '',
+                    killsELO: data.killsELO,
+                    gamesELO: data.gamesELO,
+                    selected: false
+                };
+                players.push(player);
+                renderPlayerBubble(player);
+            } catch (err) {
+                alert('Error fetching player.');
+            }
+        }
+
+        function renderPlayerBubble(player) {
+            const bubble = document.createElement('div');
+            bubble.className = 'playerBubble';
+            bubble.dataset.uid = player.uid || player.nick; // Unique key for guests
+            const uidHTML = player.uid ? `<br><span class="uid">${player.uid}</span>` : '';
+            bubble.innerHTML = `
+                <span class="name">${player.squad ? `[${player.squad}] ` : ''}${player.nick}</span>${uidHTML}
+            `;
+            bubble.addEventListener('click', () => {
+                player.selected = !player.selected;
+                bubble.classList.toggle('selected', player.selected);
+                updatePlayerCount();
+            });
+            playerPool.appendChild(bubble);
+        }
+
+        function updatePlayerCount() {
+            const selectedCount = players.filter(p => p.selected).length;
+            playerCount.textContent = `${selectedCount}/16`;
+            if (selectedCount <= 4 || selectedCount > 16) {
+                playerCount.classList.add('invalid');
+            } else {
+                playerCount.classList.remove('invalid');
+            }
+        }
+
+        goBtn.addEventListener('click', () => {
+            const selectedPlayers = players.filter(p => p.selected);
+            if (selectedPlayers.length < 2) {
+                alert('Select at least 2 players.');
+                return;
+            }
+            runSimulation(selectedPlayers);
+        });
+
+        async function runSimulation(selectedPlayers) {
+            progressDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            goBtn.disabled = true;
+
+            const N = selectedPlayers.length;
+            const weightK = parseInt(importanceSlider.value) / 100;
+            const weightG = 1 - weightK;
+            const skills = selectedPlayers.map(p => weightK * p.killsELO + weightG * p.gamesELO);
+            const total = skills.reduce((a, b) => a + b, 0);
+            const cap = prioritySelect.value === 'equal_teams' ? 1 : parseInt(maxDiffSlider.value);
+            const minTeam = 1; // Allow small teams
+            const maxTeam = N - 1;
+            const possibleSizes = [];
+            for (let s = minTeam; s <= maxTeam; s++) {
+                possibleSizes.push(s);
+            }
+            const allowedSizes = possibleSizes.filter(s => Math.abs(2 * s - N) <= cap);
+            if (allowedSizes.length === 0) {
+                alert('No valid team sizes.');
+                resetUI();
+                return;
+            }
+
+            let minScore = Infinity;
+            let bestTeamA = [];
+            const iterations = 100000;
+            const updateInterval = 1000;
+
+            for (let i = 0; i < iterations; i++) {
+                if (i % updateInterval === 0) {
+                    progBar.value = (i / iterations) * 100;
+                    await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+                }
+                const sizeA = allowedSizes[Math.floor(Math.random() * allowedSizes.length)];
+                const indices = [...Array(N).keys()];
+                shuffle(indices);
+                const teamAIndices = indices.slice(0, sizeA);
+                const sumA = teamAIndices.reduce((sum, idx) => sum + skills[idx], 0);
+                const score = Math.abs(2 * sumA - total);
+                if (score < minScore) {
+                    minScore = score;
+                    bestTeamA = teamAIndices.slice();
+                }
+            }
+            progBar.value = 100;
+
+            displayResults(selectedPlayers, bestTeamA);
+            resetUI();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function displayResults(selectedPlayers, bestTeamA) {
+            teamA.innerHTML = '<h3>Team A</h3>';
+            teamB.innerHTML = '<h3>Team B</h3>';
+            const teamAMap = new Set(bestTeamA);
+            let sumKillsA = 0, sumKillsB = 0;
+            let sumGamesA = 0, sumGamesB = 0;
+
+            selectedPlayers.forEach((player, idx) => {
+                const bubble = document.createElement('div');
+                bubble.className = 'teamBubble';
+                if (player.uid) {
+                    bubble.classList.add('clickable');
+                    bubble.addEventListener('click', () => {
+                        window.open(`https://stats.warbrokers.io/players/i/${player.uid}`, '_blank');
+                    });
+                }
+                const uidHTML = player.uid ? `<br><span class="uid">${player.uid}</span>` : '';
+                bubble.innerHTML = `
+                    <div class="left">
+                        <span class="name">${player.squad ? `[${player.squad}] ` : ''}${player.nick}</span>${uidHTML}
+                    </div>
+                    <div class="right">
+                        Kills Elo: ${player.killsELO.toFixed(2)}<br>
+                        Games Elo: ${player.gamesELO.toFixed(2)}
+                    </div>
+                `;
+                if (teamAMap.has(idx)) {
+                    teamA.appendChild(bubble);
+                    sumKillsA += player.killsELO;
+                    sumGamesA += player.gamesELO;
+                } else {
+                    teamB.appendChild(bubble);
+                    sumKillsB += player.killsELO;
+                    sumGamesB += player.gamesELO;
+                }
+            });
+
+            const diffKills = Math.abs(sumKillsA - sumKillsB).toFixed(2);
+            const diffGames = Math.abs(sumGamesA - sumGamesB).toFixed(2);
+
+            balances.innerHTML = `
+                Balance Difference (Kills ELO): ${diffKills}<br>
+                Balance Difference (Games ELO): ${diffGames}
+            `;
+            resultsDiv.style.display = 'flex';
+        }
+
+        function resetUI() {
+            progressDiv.style.display = 'none';
+            progBar.value = 0;
+            goBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>
