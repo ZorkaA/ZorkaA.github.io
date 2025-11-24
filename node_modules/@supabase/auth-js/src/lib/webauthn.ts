@@ -462,13 +462,14 @@ export const DEFAULT_CREATION_OPTIONS: Partial<PublicKeyCredentialCreationOption
     userVerification: 'preferred',
     residentKey: 'discouraged',
   },
-  attestation: 'none',
+  attestation: 'direct',
 }
 
 export const DEFAULT_REQUEST_OPTIONS: Partial<PublicKeyCredentialRequestOptionsFuture> = {
   /** set to preferred because older yubikeys don't have PIN/Biometric */
   userVerification: 'preferred',
   hints: ['security-key'],
+  attestation: 'direct',
 }
 
 function deepMerge<T>(...sources: Partial<T>[]): T {
@@ -763,10 +764,10 @@ export class WebAuthnApi {
         rpId = typeof window !== 'undefined' ? window.location.hostname : undefined,
         rpOrigins = typeof window !== 'undefined' ? [window.location.origin] : undefined,
         signal,
-      },
+      } = {},
     }: {
       factorId: string
-      webauthn: {
+      webauthn?: {
         rpId?: string
         rpOrigins?: string[]
         signal?: AbortSignal
@@ -844,14 +845,18 @@ export class WebAuthnApi {
   public async _register(
     {
       friendlyName,
-      rpId = typeof window !== 'undefined' ? window.location.hostname : undefined,
-      rpOrigins = typeof window !== 'undefined' ? [window.location.origin] : undefined,
-      signal,
+      webauthn: {
+        rpId = typeof window !== 'undefined' ? window.location.hostname : undefined,
+        rpOrigins = typeof window !== 'undefined' ? [window.location.origin] : undefined,
+        signal,
+      } = {},
     }: {
       friendlyName: string
-      rpId?: string
-      rpOrigins?: string[]
-      signal?: AbortSignal
+      webauthn?: {
+        rpId?: string
+        rpOrigins?: string[]
+        signal?: AbortSignal
+      }
     },
     overrides?: Partial<PublicKeyCredentialCreationOptionsFuture>
   ): Promise<RequestResult<AuthMFAVerifyResponseData, WebAuthnError | AuthError>> {
