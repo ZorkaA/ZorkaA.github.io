@@ -61,18 +61,19 @@ async function updateTableSchema(tableName, data) {
   }
 }
 
-async function fetchSquads() {
-  const response = await axios.get('https://wbapi.wbpjs.com/squad/getSquadList');
-  return response.data;
-}
+const authHeader = 'Basic ' + Buffer.from(process.env.RATS_USER + ':' + process.env.RATS_PASS).toString('base64');
 
-async function fetchSquadMembers(squadName) {
-  const response = await axios.get(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${squadName}`);
+async function fetchPlayerList() {
+  const response = await axios.get('http://ratsstats.ddns.net/get_player_list.php?squad=true', {
+    headers: { 'Authorization': authHeader }
+  });
   return response.data;
 }
 
 async function fetchPlayerData(uid) {
-  const response = await axios.get(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+  const response = await axios.get(`http://ratsstats.ddns.net/get_player_stats.php?uid=${uid}`, {
+    headers: { 'Authorization': authHeader }
+  });
   return response.data;
 }
 
@@ -96,16 +97,11 @@ async function main() {
   const tableName = 'player_stats_subset';
 
   try {
-    // Step 1: Fetch squads
-    const squads = await fetchSquads();
-    console.log('Fetched squads:', squads);
+    // Step 1: Fetch all players (includes squad info)
+    const allMembers = await fetchPlayerList();
+    console.log('Fetched players:', allMembers.length);
 
-    // Step 2: Fetch squad members and collect UIDs
-    let allMembers = [];
-    for (const squad of squads) {
-      const members = await fetchSquadMembers(squad);
-      allMembers = allMembers.concat(members);
-    }
+    // Step 2: Collect UIDs
     const existingUids = await loadExistingUids();
     const newUids = new Set(allMembers.map(member => member.uid));
     const combinedUids = new Set([...existingUids, ...newUids]);

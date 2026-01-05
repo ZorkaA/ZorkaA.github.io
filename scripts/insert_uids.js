@@ -10,36 +10,22 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Axios with timeout
 const axiosInstance = axios.create({ timeout: 30000 }); // 30 seconds timeout
+const authHeader = 'Basic ' + Buffer.from(process.env.RATS_USER + ':' + process.env.RATS_PASS).toString('base64');
 
-async function fetchSquads() {
-  const response = await axiosInstance.get('https://wbapi.wbpjs.com/squad/getSquadList');
-  return response.data;
-}
-
-async function fetchSquadMembers(squadName) {
-  const response = await axiosInstance.get(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${squadName}`);
+async function fetchPlayerList() {
+  const response = await axiosInstance.get('http://ratsstats.ddns.net/get_player_list.php?squad=true', {
+    headers: { 'Authorization': authHeader }
+  });
   return response.data;
 }
 
 async function main() {
   try {
-    // Step 1: Fetch squads
-    const squads = await fetchSquads();
-    console.log('Fetched squads:', squads);
+    // Step 1: Fetch all players (includes squad info)
+    const allMembers = await fetchPlayerList();
+    console.log('Fetched players:', allMembers.length);
 
-    // Step 2: Fetch squad members and collect UID/name pairs
-    let allMembers = [];
-    for (const squad of squads) {
-      try {
-        const members = await fetchSquadMembers(squad);
-        console.log(`Fetched members for squad ${squad}:`, members.length);
-        allMembers = allMembers.concat(members);
-      } catch (error) {
-        console.error(`Failed to fetch members for squad ${squad}:`, JSON.stringify(error, null, 2));
-      }
-    }
-
-    // Step 3: Prepare data for insertion
+    // Step 2: Prepare data for insertion
     const uidsData = allMembers.map(member => ({
       uid: member.uid,
       name: member.nick
@@ -48,7 +34,7 @@ async function main() {
     console.log('Total unique UIDs to insert:', uniqueUids);
     console.log('Sample data:', JSON.stringify(uidsData.slice(0, 3), null, 2));
 
-    // Step 4: Insert data in batches
+    // Step 3: Insert data in batches
     const batchSize = 500;
     for (let i = 0; i < uidsData.length; i += batchSize) {
       const batch = uidsData.slice(i, i + batchSize);

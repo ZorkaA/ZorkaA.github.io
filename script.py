@@ -72,28 +72,25 @@ damage_names = {
 }
 
 # API URLs
-squad_list_url = "https://wbapi.wbpjs.com/squad/getSquadList"
-squad_members_url = "https://wbapi.wbpjs.com/squad/getSquadMembers?squadName={}"
-player_info_url = "https://wbapi.wbpjs.com/players/getPlayer?uid={}"
+player_list_url = "http://ratsstats.ddns.net/get_player_list.php?squad=true"
+player_info_url = "http://ratsstats.ddns.net/get_player_stats.php?uid={}"
+
+# Credentials
+RATS_USER = os.getenv('RATS_USER')
+RATS_PASS = os.getenv('RATS_PASS')
 
 # Get the current date
 today = datetime.today().strftime('%d%m%Y')
 
-# Function to get squad list
-def get_squad_list():
-    response = requests.get(squad_list_url)
-    response.raise_for_status()
-    return response.json()
-
-# Function to get squad members
-def get_squad_members(squad_name):
-    response = requests.get(squad_members_url.format(squad_name))
+# Function to get player list
+def get_player_list():
+    response = requests.get(player_list_url, auth=(RATS_USER, RATS_PASS))
     response.raise_for_status()
     return response.json()
 
 # Function to get player info
 def get_player_info(uid):
-    response = requests.get(player_info_url.format(uid))
+    response = requests.get(player_info_url.format(uid), auth=(RATS_USER, RATS_PASS))
     response.raise_for_status()
     return response.json()
 
@@ -112,38 +109,35 @@ if not os.path.exists(csv_file_path):
         writer = csv.writer(file)
         writer.writerow(headers)
 
-# Get the list of squads
-squads = get_squad_list()
+# Get the list of players
+players = get_player_list()
 
 # Calculate total number of players for the progress bar
-total_players = sum(len(get_squad_members(squad)) for squad in squads)
+total_players = len(players)
 
 # Create a progress bar for processing players
 with tqdm(total=total_players, desc="Processing Players", unit="player") as progress_bar:
-    for squad in squads:
-        members = get_squad_members(squad)
+    for player in players:
+        try:
+            player_info = get_player_info(player['uid'])
 
-        for member in members:
-            try:
-                player_info = get_player_info(member['uid'])
+            # Skip if player_info is None
+            if not player_info:
+                continue
 
-                # Skip if player_info is None
-                if not player_info:
-                    continue
+            # Ensure player_info['losses'] is a dictionary
+            losses = player_info.get('losses', {}) if isinstance(player_info.get('losses', {}), dict) else {}
 
-                # Ensure player_info['losses'] is a dictionary
-                losses = player_info.get('losses', {}) if isinstance(player_info.get('losses', {}), dict) else {}
+            damage_dealt = map_damage_dealt(player_info.get('damage_dealt', {}))
 
-                damage_dealt = map_damage_dealt(player_info.get('damage_dealt', {}))
-
-                # Create a row with all relevant player info
-                row = [
-                    today,
-                    squad,
-                    player_info.get('nick'),
-                    member['uid'],  # Add UserID to the row
-                    player_info.get('level'),
-                    player_info.get('xp'),
+            # Create a row with all relevant player info
+            row = [
+                today,
+                player_info.get('squad'),
+                player_info.get('nick'),
+                player['uid'],  # Add UserID to the row
+                player_info.get('level'),
+                player_info.get('xp'),
                     player_info.get('joinTime'),
                     player_info.get('ping_time'),
                     player_info.get('banned'),
@@ -168,8 +162,8 @@ with tqdm(total=total_players, desc="Processing Players", unit="player") as prog
                     writer = csv.writer(file)
                     writer.writerow(row)
 
-            except Exception as e:
-                print(f"Error processing user {member['uid']}: {e}")
+        except Exception as e:
+            print(f"Error processing user {player['uid']}: {e}")
 
-            # Update the progress bar
-            progress_bar.update(1)
+        # Update the progress bar
+        progress_bar.update(1)
