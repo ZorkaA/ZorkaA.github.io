@@ -503,7 +503,7 @@
                     return;
                 }
                 try {
-                    const res = await fetch(`https://wbapi.wbpjs.com/players/searchByName?query=${encodeURIComponent(query)}`);
+                    const res = await fetch(`https://wbv.vercel.app/api/search?q=${encodeURIComponent(query)}`);
                     if (!res.ok) {
                         throw new Error(`Search failed: ${res.status} ${res.statusText}`);
                     }
@@ -525,7 +525,7 @@
                     return;
                 }
                 try {
-                    const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${encodeURIComponent(cleanUid)}`);
+                    const res = await fetch(`https://wbv.vercel.app/api/get-player-stats?uid=${encodeURIComponent(cleanUid)}`);
                     if (!res.ok) {
                         throw new Error(`Player fetch failed: ${res.status} ${res.statusText}`);
                     }

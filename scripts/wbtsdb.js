@@ -10,6 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Axios with timeout
 const axiosInstance = axios.create({ timeout: 60000 }); // 60 seconds timeout
+const authHeader = 'Basic ' + Buffer.from(process.env.RATS_USER + ':' + process.env.RATS_PASS).toString('base64');
 
 // Helper to flatten nested objects
 function flattenObject(obj, parent = '', result = {}) {
@@ -75,7 +76,9 @@ async function ensureSchemaForBatch(tableName, batchData) {
 
 async function fetchPlayerData(uid) {
   try {
-    const response = await axiosInstance.get(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+    const response = await axiosInstance.get(`http://ratsstats.ddns.net/get_player_stats.php?uid=${uid}`, {
+      headers: { 'Authorization': authHeader }
+    });
     return response.data;
   } catch (error) {
     console.error(`Failed to fetch data for UID ${uid}:`, JSON.stringify({

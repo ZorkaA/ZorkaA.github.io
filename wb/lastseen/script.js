@@ -20,9 +20,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // Step 1: Fetch squad members
-      const squadResponse = await fetch(`https://wbapi.wbpjs.com/squad/getSquadMembers?squadName=${encodeURIComponent(squadName)}`);
+      const squadResponse = await fetch(`https://wbv.vercel.app/api/get-squad-details?name=${encodeURIComponent(squadName)}`);
       if (!squadResponse.ok) throw new Error("Failed to fetch squad members.");
-      const squadData = await squadResponse.json();
+      const squadResponseData = await squadResponse.json();
+
+      // The API returns [{"name":"BOT","members":[...]}] (an array with one object)
+      const squadData = (Array.isArray(squadResponseData) && squadResponseData.length > 0) ? squadResponseData[0].members : [];
 
       if (!Array.isArray(squadData) || squadData.length === 0) {
         errorMessage.textContent = "No members found for the given squad.";
@@ -33,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Step 2: Fetch each player's data and build the table
       const playerPromises = squadData.map(member =>
-        fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${encodeURIComponent(member.uid)}`)
+        fetch(`https://wbv.vercel.app/api/get-player-stats?uid=${encodeURIComponent(member.uid)}`)
           .then(res => {
             if (!res.ok) throw new Error(`Failed to fetch data for UID: ${member.uid}`);
             return res.json();
