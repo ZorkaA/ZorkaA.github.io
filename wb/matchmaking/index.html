@@ -451,7 +451,7 @@
 
         async function searchByName(query) {
             try {
-                const res = await fetch(`https://wbapi.wbpjs.com/players/searchByName?query=${encodeURIComponent(query)}`);
+                const res = await fetch(`https://wbv.vercel.app/api/search?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 searchResults.innerHTML = '';
                 if (data.length === 0) {
@@ -484,7 +484,7 @@
                 return;
             }
             try {
-                const res = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+                const res = await fetch(`https://wbv.vercel.app/api/get-player-stats?uid=${uid}`);
                 const data = await res.json();
                 const player = {
                     uid: data.uid,

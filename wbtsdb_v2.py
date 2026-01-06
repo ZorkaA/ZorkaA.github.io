@@ -75,28 +75,25 @@ damage_names = {
 }
 
 # API URLs
-squad_list_url = "https://wbapi.wbpjs.com/squad/getSquadList"
-squad_members_url = "https://wbapi.wbpjs.com/squad/getSquadMembers?squadName={}"
-player_info_url = "https://wbapi.wbpjs.com/players/getPlayer?uid={}"
+player_list_url = "http://ratsstats.ddns.net/get_player_list.php?squad=true"
+player_info_url = "http://ratsstats.ddns.net/get_player_stats.php?uid={}"
+
+# Credentials
+RATS_USER = os.getenv('RATS_USER')
+RATS_PASS = os.getenv('RATS_PASS')
 
 # Get the current date
 today = datetime.today().strftime('%m%d%Y')
 
-# Function to get squad list
-def get_squad_list():
-    response = requests.get(squad_list_url)
-    response.raise_for_status()
-    return response.json()
-
-# Function to get squad members
-def get_squad_members(squad_name):
-    response = requests.get(squad_members_url.format(squad_name))
+# Function to get player list
+def get_player_list():
+    response = requests.get(player_list_url, auth=(RATS_USER, RATS_PASS))
     response.raise_for_status()
     return response.json()
 
 # Function to get player info
 def get_player_info(uid):
-    response = requests.get(player_info_url.format(uid))
+    response = requests.get(player_info_url.format(uid), auth=(RATS_USER, RATS_PASS))
     response.raise_for_status()
     return response.json()
 
@@ -242,7 +239,7 @@ if not os.path.exists(csv_file_path):
 
 # Collect unique user IDs
 def collect_unique_uids():
-    squads = get_squad_list()
+    players = get_player_list()
     unique_uids = set()
 
     # Read existing UIDs from file
@@ -250,11 +247,9 @@ def collect_unique_uids():
         with open(uids_file_path, 'r') as file:
             unique_uids.update(line.strip() for line in file)
 
-    # Collect new UIDs from squad members
-    for squad in squads:
-        members = get_squad_members(squad)
-        for member in members:
-            unique_uids.add(member['uid'])
+    # Collect new UIDs from player list
+    for player in players:
+        unique_uids.add(player['uid'])
 
     # Write updated UIDs to file
     with open(uids_file_path, 'w') as file:

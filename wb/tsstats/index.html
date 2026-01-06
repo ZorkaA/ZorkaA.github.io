@@ -143,7 +143,7 @@
             const query = document.getElementById('name-input').value.trim();
             if (!query) return alert('Please enter a name to search.');
             try {
-                const response = await axios.get(`https://wbapi.wbpjs.com/players/searchByName?query=${encodeURIComponent(query)}`);
+                const response = await axios.get(`https://wbv.vercel.app/api/search?q=${encodeURIComponent(query)}`);
                 const results = response.data;
                 const ul = document.getElementById('search-results');
                 ul.innerHTML = '';

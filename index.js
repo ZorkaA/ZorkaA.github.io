@@ -2,7 +2,10 @@
 
 async function getPlayerStats(uid) {
   try {
-    const response = await fetch(`https://wbapi.wbpjs.com/players/getPlayer?uid=${uid}`);
+    const authHeader = 'Basic ' + Buffer.from(process.env.RATS_USER + ':' + process.env.RATS_PASS).toString('base64');
+    const response = await fetch(`http://ratsstats.ddns.net/get_player_stats.php?uid=${uid}`, {
+      headers: { 'Authorization': authHeader }
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
