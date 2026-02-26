@@ -134,6 +134,10 @@
         .playerBubble .name {
             font-size: 16px;
             font-weight: bold;
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .playerBubble .uid {
             font-size: 12px;
@@ -434,9 +438,9 @@
         // Bottom Left: (100 - 90, 165) = (10, 165).
         // Bottom Right: (100 + 90, 165) = (190, 165).
 
-        const vK = {x: 100, y: 10};
-        const vW = {x: 10, y: 165};
-        const vG = {x: 190, y: 165};
+        const vK = {x: 100, y: 20};
+        const vW = {x: 20, y: 155};
+        const vG = {x: 180, y: 155};
 
         let weights = {k: 0.333, g: 0.333, w: 0.333};
         let isDragging = false;
@@ -459,9 +463,9 @@
             ctx.fillStyle = '#fff';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Kills', vK.x, vK.y - 5);
-            ctx.fillText('Wins', vW.x, vW.y + 15);
-            ctx.fillText('Games', vG.x, vG.y + 15);
+            ctx.fillText('Kills', vK.x, vK.y - 10);
+            ctx.fillText('Wins', vW.x - 10, vW.y + 15);
+            ctx.fillText('Games', vG.x + 10, vG.y + 15);
 
             // Current Point
             // P = wK*A + wG*B + wW*C
