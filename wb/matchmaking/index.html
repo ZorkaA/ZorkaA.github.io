@@ -449,33 +449,58 @@
             guestGames.value = Math.round(gaussianRand(1500, 190));
         }
 
+        let cachedPlayers = null;
+        let fetchPromise = null;
+
         async function searchByName(query) {
-            try {
-                const res = await fetch(`https://wbv.vercel.app/api/search?q=${encodeURIComponent(query)}`);
-                const data = await res.json();
-                searchResults.innerHTML = '';
-                if (data.length === 0) {
-                    searchResults.style.display = 'none';
-                    return;
+            searchResults.innerHTML = '';
+
+            if (!cachedPlayers) {
+                if (!fetchPromise) {
+                    fetchPromise = (async () => {
+                        try {
+                            const res = await fetch('https://wbv.vercel.app/api/search');
+                            if (!res.ok) {
+                                throw new Error(`HTTP error! status: ${res.status}`);
+                            }
+                            cachedPlayers = await res.json();
+                        } catch (err) {
+                            console.error('Error fetching player list:', err);
+                            alert('Error searching players. See console for details.');
+                            fetchPromise = null;
+                        }
+                    })();
                 }
-                const ul = document.createElement('ul');
-                data.forEach(player => {
-                    const li = document.createElement('li');
-                    li.textContent = `${player.nick} (${player.uid})`;
-                    li.dataset.uid = player.uid;
-                    li.addEventListener('click', async () => {
-                        await addPlayer(player.uid);
-                        searchResults.innerHTML = '';
-                        searchResults.style.display = 'none';
-                        playerInput.value = '';
-                    });
-                    ul.appendChild(li);
-                });
-                searchResults.appendChild(ul);
-                searchResults.style.display = 'block';
-            } catch (err) {
-                alert('Error searching players.');
+                await fetchPromise;
+                if (!cachedPlayers) return;
             }
+
+            const queryLower = query.toLowerCase();
+            const matches = cachedPlayers.filter(p =>
+                (p.nick && p.nick.toLowerCase().includes(queryLower)) ||
+                (p.uid && p.uid.toLowerCase().includes(queryLower))
+            ).slice(0, 20);
+
+            if (matches.length === 0) {
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            matches.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = `${player.nick} (${player.uid})`;
+                li.dataset.uid = player.uid;
+                li.addEventListener('click', async () => {
+                    await addPlayer(player.uid);
+                    searchResults.innerHTML = '';
+                    searchResults.style.display = 'none';
+                    playerInput.value = '';
+                });
+                ul.appendChild(li);
+            });
+            searchResults.appendChild(ul);
+            searchResults.style.display = 'block';
         }
 
         async function addPlayer(uid) {
