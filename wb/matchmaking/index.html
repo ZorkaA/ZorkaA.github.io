@@ -309,6 +309,240 @@
         #doneBtn:hover {
             background: #218838;
         }
+
+        /* Import Squad Modal */
+        #importSquadModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+        #importSquadContent {
+            background: #444;
+            padding: 20px;
+            border-radius: 5px;
+            width: 400px;
+            position: relative;
+        }
+        #closeImportModal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        #squadSearchWrapper {
+            display: flex;
+            position: relative;
+            margin-top: 10px;
+            gap: 10px;
+        }
+        #squadSearchWrapper input {
+            flex: 1;
+            padding: 10px;
+            background: #555;
+            border: 1px solid #666;
+            color: #fff;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        #searchSquadBtn {
+            padding: 10px;
+            background: #007bff;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #searchSquadBtn:hover {
+            background: #0056b3;
+        }
+        #squadSearchResults {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 150px;
+            overflow-y: auto;
+            background: #555;
+            border: 1px solid #666;
+            border-radius: 5px;
+            display: none;
+            z-index: 10;
+        }
+        #squadSearchResults ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #squadSearchResults li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #666;
+        }
+        #squadSearchResults li:hover {
+            background: #666;
+        }
+        #squadLog {
+            height: 100px;
+            overflow-y: auto;
+            background: #333;
+            border: 1px solid #555;
+            padding: 5px;
+            font-size: 12px;
+            font-family: monospace;
+            border-radius: 3px;
+        }
+        .circular-spinner {
+            animation: rotate 2s linear infinite;
+            width: 40px;
+            height: 40px;
+        }
+        .circular-spinner .path {
+            stroke: #007bff;
+            stroke-dasharray: 1, 200;
+            stroke-dashoffset: 0;
+            animation: dash 1.5s ease-in-out infinite;
+        }
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes dash {
+            0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 89, 200; stroke-dashoffset: -35px; }
+            100% { stroke-dasharray: 89, 200; stroke-dashoffset: -124px; }
+        }
+
+
+        #minimizedWidget {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: #444;
+            border: 2px solid #555;
+            border-radius: 5px;
+            display: none;
+            cursor: pointer;
+            z-index: 15;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        #minimizedWidget:hover {
+            border-color: #777;
+        }
+        #miniProgressInner {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            background: #007bff;
+            transition: height 0.2s;
+        }
+        #miniCheck {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #28a745;
+            font-size: 20px;
+            display: none;
+            z-index: 2;
+        }
+
+
+        #editBtn {
+            padding: 10px 20px;
+            background: #ffc107;
+            border: none;
+            color: #000;
+            border-radius: 5px;
+            margin-right: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #editBtn:hover {
+            background: #e0a800;
+        }
+        #editBtn.active {
+            background: #dc3545;
+            color: #fff;
+        }
+        #editBtn.active:hover {
+            background: #c82333;
+        }
+
+        #undoBtn {
+            padding: 10px;
+            background: #17a2b8;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            margin-right: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+        }
+        #undoBtn:hover {
+            background: #138496;
+        }
+
+        .playerBubble {
+            position: relative;
+        }
+
+        /* Edit Mode Overlays */
+        .bubble-delete, .bubble-edit {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            color: #fff;
+            z-index: 5;
+        }
+        .bubble-delete {
+            top: -5px;
+            left: -5px;
+            background: #dc3545;
+        }
+        .bubble-edit {
+            top: -5px;
+            right: -5px;
+            background: #007bff;
+        }
+
+        body.edit-mode .bubble-delete,
+        body.edit-mode .bubble-edit {
+            display: flex;
+        }
+
+        body.edit-mode .playerBubble {
+            cursor: grab;
+        }
+        body.edit-mode .playerBubble:active {
+            cursor: grabbing;
+        }
+
+        /* Disable selection styling highlight while in edit mode */
+        body.edit-mode .playerBubble.selected {
+            border: 2px solid transparent;
+            box-shadow: none;
+        }
+
     </style>
 </head>
 <body>
@@ -319,6 +553,7 @@
         </div>
         <button id="addPlayer">Add Player</button>
         <button id="addGuest">Add Guest</button>
+        <button id="importSquadBtn">Import Squad</button>
         <button id="addRandom">Add Random</button>
     </div>
     <div id="playerPool"></div>
@@ -327,7 +562,11 @@
             <option value="equal_teams">Prioritize equal teams</option>
             <option value="equal_balancing">Prioritize equal balancing</option>
         </select>
+
+        <button id="undoBtn" title="Undo all changes in current edit session">&#8634;</button>
+        <button id="editBtn">Edit Pool</button>
         <div class="slider-container">
+
             <label for="maxDiff">Max team size difference:</label>
             <input type="range" id="maxDiff" min="1" max="5" value="5">
             <span id="maxDiffVal">5</span>
@@ -377,6 +616,30 @@
         </div>
     </div>
 
+
+    <div id="importSquadModal">
+        <div id="importSquadContent">
+            <span id="closeImportModal">&times;</span>
+            <h3>Import Squad</h3>
+            <div id="squadSearchWrapper">
+                <input id="squadInput" placeholder="Search for squad...">
+                <button id="searchSquadBtn">Import</button>
+                <div id="squadSearchResults"></div>
+            </div>
+            <div id="squadLoadSpinner" style="display: none; text-align: center; margin-top: 10px;">
+                <svg class="circular-spinner" viewBox="25 25 50 50">
+                    <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="4" stroke-miterlimit="10"/>
+                </svg>
+                <div id="squadLoadPercent" style="margin-top: 5px; font-size: 14px;">Loading...</div>
+            </div>
+            <div id="squadProgressWrapper" style="display: none; margin-top: 15px;">
+                <progress id="squadProgBar" value="0" max="100" style="width: 100%;"></progress>
+                <div id="squadProgressText" style="text-align: center; font-size: 14px; margin-bottom: 5px;"></div>
+                <div id="squadLog"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function debounce(func, delay) {
             let timeout;
@@ -399,6 +662,7 @@
         const playerInput = document.getElementById('playerInput');
         const addPlayerBtn = document.getElementById('addPlayer');
         const addGuestBtn = document.getElementById('addGuest');
+        const importSquadBtn = document.getElementById('importSquadBtn');
         const addRandomBtn = document.getElementById('addRandom');
         const playerCount = document.getElementById('playerCount');
         const maxDiffSlider = document.getElementById('maxDiff');
@@ -572,6 +836,285 @@
             drawTriangle();
         });
 
+
+        const importSquadModal = document.getElementById('importSquadModal');
+        const closeImportModal = document.getElementById('closeImportModal');
+        const squadInput = document.getElementById('squadInput');
+        const squadSearchResults = document.getElementById('squadSearchResults');
+        const squadLoadSpinner = document.getElementById('squadLoadSpinner');
+        const squadLoadPercent = document.getElementById('squadLoadPercent');
+        const squadProgressWrapper = document.getElementById('squadProgressWrapper');
+        const squadProgBar = document.getElementById('squadProgBar');
+        const squadProgressText = document.getElementById('squadProgressText');
+        const squadLog = document.getElementById('squadLog');
+
+        let cachedSquads = null;
+        let isFetchingSquads = false;
+
+        importSquadBtn.addEventListener('click', async () => {
+            importSquadModal.style.display = 'flex';
+            if (!cachedSquads && !isFetchingSquads) {
+                isFetchingSquads = true;
+                squadLoadSpinner.style.display = 'block';
+                squadInput.disabled = true;
+
+                try {
+                    // Try to show mocked progress since fetch doesn't give clean progress without content-length often
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        if (progress < 90) {
+                            progress += Math.floor(Math.random() * 10);
+                            if(progress > 90) progress = 90;
+                            squadLoadPercent.textContent = progress + '%';
+                        }
+                    }, 200);
+
+                    const res = await fetch('https://wbv.vercel.app/api/get-squads');
+                    clearInterval(interval);
+                    if (!res.ok) throw new Error('Failed to fetch squads');
+                    cachedSquads = await res.json();
+                    squadLoadPercent.textContent = '100%';
+
+                    setTimeout(() => {
+                        squadLoadSpinner.style.display = 'none';
+                        squadInput.disabled = false;
+                        squadInput.focus();
+                    }, 300);
+                } catch (e) {
+                    console.error(e);
+                    squadLoadPercent.textContent = 'Error loading squads.';
+                } finally {
+                    isFetchingSquads = false;
+                }
+            }
+        });
+
+        closeImportModal.addEventListener('click', () => {
+            importSquadModal.style.display = 'none';
+        });
+
+        squadInput.addEventListener('input', debounce(() => {
+            const val = squadInput.value.trim().toLowerCase();
+            squadSearchResults.innerHTML = '';
+            if (val.length < 1 || !cachedSquads) {
+                squadSearchResults.style.display = 'none';
+                return;
+            }
+
+            const matches = cachedSquads.filter(sq => sq.name.toLowerCase().includes(val)).slice(0, 10);
+            if (matches.length === 0) {
+                squadSearchResults.style.display = 'none';
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            matches.forEach(sq => {
+                const li = document.createElement('li');
+                li.textContent = sq.name;
+                li.addEventListener('click', () => {
+                    squadInput.value = sq.name;
+                    squadSearchResults.style.display = 'none';
+                });
+                ul.appendChild(li);
+            });
+            squadSearchResults.appendChild(ul);
+            squadSearchResults.style.display = 'block';
+        }, 200));
+
+
+        const searchSquadBtn = document.getElementById('searchSquadBtn');
+        let activeImportSquad = null;
+        let isImporting = false;
+
+        function appendToSquadLog(msg, color = '#fff') {
+            const span = document.createElement('span');
+            span.style.color = color;
+            span.innerHTML = msg + '<br>';
+            squadLog.appendChild(span);
+            squadLog.scrollTop = squadLog.scrollHeight;
+        }
+
+        searchSquadBtn.addEventListener('click', async () => {
+            const squadName = squadInput.value.trim();
+            if (!squadName) return;
+
+            // Find in cache
+            const squadObj = cachedSquads?.find(sq => sq.name.toLowerCase() === squadName.toLowerCase());
+            if (!squadObj) {
+                alert('Squad not found in list.');
+                return;
+            }
+
+            if (isImporting) {
+                alert('An import is already in progress.');
+                return;
+            }
+
+            isImporting = true;
+            activeImportSquad = squadName;
+            squadProgressWrapper.style.display = 'block';
+            squadProgBar.value = 0;
+            squadLog.innerHTML = '';
+            appendToSquadLog(`Starting import for squad: ${squadName}`, '#00ff00');
+
+            const members = squadObj.members || [];
+            if (members.length === 0) {
+                appendToSquadLog('Squad has no members.', '#ff4444');
+                isImporting = false;
+                return;
+            }
+
+            squadProgBar.max = members.length;
+            squadProgressText.textContent = `0 / ${members.length} imported`;
+
+            let successCount = 0;
+            for (let i = 0; i < members.length; i++) {
+                const member = members[i];
+                appendToSquadLog(`Fetching ${member.nick}...`);
+
+                // Add tiny delay so UI updates
+                await new Promise(r => setTimeout(r, 50));
+
+                try {
+                    // Check if already in pool
+                    if (players.find(p => p.uid === member.uid)) {
+                        appendToSquadLog(`> ${member.nick} already in pool. Skipping.`, '#aaa');
+                    } else {
+                        const res = await fetch(`https://wbv.vercel.app/api/get-player-stats?uid=${member.uid}`);
+                        if (!res.ok) throw new Error('API Error');
+                        const data = await res.json();
+
+                        let totalWins = 0;
+                        if (data.wins) {
+                            totalWins = Object.values(data.wins).reduce((a, b) => a + b, 0);
+                        }
+
+                        const playerObj = {
+                            uid: data.uid,
+                            nick: data.nick,
+                            squad: data.squad || '',
+                            killsELO: data.killsELO,
+                            gamesELO: data.gamesELO,
+                            wins: totalWins,
+                            selected: false
+                        };
+                        players.push(playerObj);
+                        renderPlayerBubble(playerObj);
+                        appendToSquadLog(`> Added ${member.nick} successfully.`, '#00ff00');
+                        successCount++;
+                    }
+                } catch (e) {
+                    appendToSquadLog(`> Failed to fetch ${member.nick}.`, '#ff4444');
+                }
+
+                squadProgBar.value = i + 1;
+                squadProgressText.textContent = `${i + 1} / ${members.length} processed`;
+
+                // Update minimized widget if it exists
+                if (window.updateMiniWidget) {
+                    window.updateMiniWidget(i + 1, members.length);
+                }
+            }
+
+            appendToSquadLog(`Import complete. Added ${successCount} new players.`, '#00aaff');
+            isImporting = false;
+
+            if (window.finishMiniWidget) {
+                window.finishMiniWidget();
+            }
+        });
+
+
+        // Hide results on blur
+        document.addEventListener('click', (e) => {
+            if (!squadSearchWrapper.contains(e.target)) {
+                squadSearchResults.style.display = 'none';
+            }
+        });
+
+
+
+        const minimizedWidget = document.getElementById('minimizedWidget');
+        const miniProgressInner = document.getElementById('miniProgressInner');
+        const miniCheck = document.getElementById('miniCheck');
+
+        minimizedWidget.addEventListener('click', () => {
+            importSquadModal.style.display = 'flex';
+            // Even if finished, it just reopens the modal so they can see the log.
+            // If they want to dismiss it entirely when done, they can close the modal,
+            // but we need to hide the widget if it was finished and they reopened.
+            if (!isImporting) {
+                minimizedWidget.style.display = 'none';
+            }
+        });
+
+        // Override close modal logic to show widget if importing OR if finished and they just closed it without looking?
+        // Actually, if importing, definitely show it. If finished, we can just let it be, but the prompt says:
+        // "Can stick around, just be minimized (to a green check box... clicking it opens it back up)."
+
+        const originalClose = closeImportModal.onclick;
+        closeImportModal.addEventListener('click', () => {
+            if (isImporting || squadProgressWrapper.style.display === 'block') {
+                minimizedWidget.style.display = 'block';
+            }
+        });
+
+        window.updateMiniWidget = function(current, max) {
+            if (max > 0) {
+                const pct = (current / max) * 100;
+                miniProgressInner.style.height = pct + '%';
+                miniCheck.style.display = 'none';
+                miniProgressInner.style.background = '#007bff';
+            }
+        };
+
+        window.finishMiniWidget = function() {
+            miniProgressInner.style.height = '100%';
+            miniProgressInner.style.background = '#222';
+            miniCheck.style.display = 'block';
+        };
+
+
+
+        const editBtn = document.getElementById('editBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        let isEditMode = false;
+        let playersSnapshot = [];
+
+        editBtn.addEventListener('click', () => {
+            isEditMode = !isEditMode;
+            if (isEditMode) {
+                editBtn.classList.add('active');
+                editBtn.textContent = 'Done Editing';
+                undoBtn.style.display = 'inline-block';
+                document.body.classList.add('edit-mode');
+                // Create deep clone for undo
+                playersSnapshot = JSON.parse(JSON.stringify(players));
+            } else {
+                editBtn.classList.remove('active');
+                editBtn.textContent = 'Edit Pool';
+                undoBtn.style.display = 'none';
+                document.body.classList.remove('edit-mode');
+                // Re-render to restore visual selection state
+                reRenderPool();
+            }
+        });
+
+        undoBtn.addEventListener('click', () => {
+            if (!isEditMode) return;
+            // Restore from snapshot
+            players.length = 0;
+            playersSnapshot.forEach(p => players.push(JSON.parse(JSON.stringify(p))));
+            reRenderPool();
+        });
+
+        function reRenderPool() {
+            playerPool.innerHTML = '';
+            players.forEach(p => renderPlayerBubble(p));
+            updatePlayerCount();
+        }
+
+
         // Initialize
         drawTriangle();
         updateWeightLabels();
@@ -617,20 +1160,35 @@
             }
         });
 
-        addGuestBtn.addEventListener('click', () => {
-            randomizeGuest();
-            modal.style.display = 'flex';
-        });
+
+
+
+        async function ensurePlayersFetched() {
+            if (!cachedPlayers) {
+                if (!fetchPromise) {
+                    fetchPromise = (async () => {
+                        try {
+                            const res = await fetch('https://wbv.vercel.app/api/search');
+                            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                            cachedPlayers = await res.json();
+                        } catch (err) {
+                            console.error('Error fetching player list:', err);
+                            alert('Error searching players. See console for details.');
+                            fetchPromise = null;
+                        }
+                    })();
+                }
+                await fetchPromise;
+            }
+        }
 
         addRandomBtn.addEventListener('click', async () => {
-            if (!cachedPlayers) {
-                // Trigger fetch if not ready
-                await searchByName("");
-                if (!cachedPlayers) return; // Fetch failed
-            }
+            await ensurePlayersFetched();
+            if (!cachedPlayers) return;
             const randomPlayer = cachedPlayers[Math.floor(Math.random() * cachedPlayers.length)];
             await addPlayer(randomPlayer.uid);
         });
+
 
         closeModal.addEventListener('click', () => {
             modal.style.display = 'none';
@@ -638,24 +1196,56 @@
 
         randomizeBtn.addEventListener('click', randomizeGuest);
 
+
+        let editingPlayer = null;
+
+        function openEditModal(player) {
+            editingPlayer = player;
+            guestName.value = player.nick;
+            guestKills.value = Math.round(player.killsELO);
+            guestGames.value = Math.round(player.gamesELO);
+            guestWins.value = player.wins;
+
+            modal.style.display = 'flex';
+        }
+
+        // Hooking into addGuestBtn to clear editingPlayer
+        addGuestBtn.addEventListener('click', () => {
+            editingPlayer = null;
+            randomizeGuest();
+            modal.style.display = 'flex';
+        });
+
         doneBtn.addEventListener('click', () => {
             const name = guestName.value.trim() || 'Guest';
             const kills = parseFloat(guestKills.value) || 1500;
             const games = parseFloat(guestGames.value) || 1500;
             const wins = parseFloat(guestWins.value) || 10;
-            const player = {
-                uid: '',
-                nick: name,
-                squad: '',
-                killsELO: kills,
-                gamesELO: games,
-                wins: wins,
-                selected: false
-            };
-            players.push(player);
-            renderPlayerBubble(player);
+
+            if (editingPlayer) {
+                // Update existing
+                editingPlayer.nick = name;
+                editingPlayer.killsELO = kills;
+                editingPlayer.gamesELO = games;
+                editingPlayer.wins = wins;
+                reRenderPool();
+            } else {
+                // Create new
+                const player = {
+                    uid: '',
+                    nick: name,
+                    squad: '',
+                    killsELO: kills,
+                    gamesELO: games,
+                    wins: wins,
+                    selected: false
+                };
+                players.push(player);
+                renderPlayerBubble(player);
+            }
             modal.style.display = 'none';
         });
+
 
         function randomizeGuest() {
             const randNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -675,25 +1265,8 @@
         async function searchByName(query) {
             searchResults.innerHTML = '';
 
-            if (!cachedPlayers) {
-                if (!fetchPromise) {
-                    fetchPromise = (async () => {
-                        try {
-                            const res = await fetch('https://wbv.vercel.app/api/search');
-                            if (!res.ok) {
-                                throw new Error(`HTTP error! status: ${res.status}`);
-                            }
-                            cachedPlayers = await res.json();
-                        } catch (err) {
-                            console.error('Error fetching player list:', err);
-                            alert('Error searching players. See console for details.');
-                            fetchPromise = null;
-                        }
-                    })();
-                }
-                await fetchPromise;
-                if (!cachedPlayers) return;
-            }
+            await ensurePlayersFetched();
+            if (!cachedPlayers) return;
 
             const queryLower = query.toLowerCase();
             const matches = cachedPlayers.filter(p =>
@@ -753,22 +1326,114 @@
             }
         }
 
+
+        let draggedPlayerIndex = -1;
+
         function renderPlayerBubble(player) {
             const bubble = document.createElement('div');
             bubble.className = 'playerBubble';
-            bubble.dataset.uid = player.uid || player.nick; // Unique key for guests
+            bubble.dataset.uid = player.uid || player.nick;
+
+            if (player.selected && !isEditMode) {
+                bubble.classList.add('selected');
+            } else if (player.selected && isEditMode) {
+                // Keep selected class purely for data, but CSS hides the visual styling
+                bubble.classList.add('selected');
+            }
+
             const uidHTML = player.uid ? `<br><span class="uid">${player.uid}</span>` : '';
             const elosHTML = `<div class="elos">K: ${player.killsELO.toFixed(0)} G: ${player.gamesELO.toFixed(0)} W: ${player.wins.toFixed(0)}</div>`;
-            bubble.innerHTML = `
+
+            // Edit mode tools
+            const toolsHTML = `
+                <div class="bubble-delete">&times;</div>
+                <div class="bubble-edit">&#9998;</div>
+            `;
+
+            bubble.innerHTML = toolsHTML + `
                 <span class="name">${player.squad ? `[${player.squad}] ` : ''}${player.nick}</span>${uidHTML}${elosHTML}
             `;
-            bubble.addEventListener('click', () => {
+
+            // Selection logic
+            bubble.addEventListener('click', (e) => {
+                if (isEditMode) return; // Disable selection toggle in edit mode
                 player.selected = !player.selected;
                 bubble.classList.toggle('selected', player.selected);
                 updatePlayerCount();
             });
+
+            // Edit logic
+            const deleteBtn = bubble.querySelector('.bubble-delete');
+            const editToolBtn = bubble.querySelector('.bubble-edit');
+
+            deleteBtn.addEventListener('click', (e) => {
+                if (!isEditMode) return;
+                e.stopPropagation();
+                const idx = players.indexOf(player);
+                if (idx > -1) {
+                    players.splice(idx, 1);
+                    reRenderPool();
+                }
+            });
+
+            editToolBtn.addEventListener('click', (e) => {
+                if (!isEditMode) return;
+                e.stopPropagation();
+                openEditModal(player);
+            });
+
+            // Drag and Drop functionality
+            bubble.draggable = true; // Always true, but cursor only shows grab in edit mode
+
+            bubble.addEventListener('dragstart', (e) => {
+                if (!isEditMode) {
+                    e.preventDefault();
+                    return;
+                }
+                draggedPlayerIndex = players.indexOf(player);
+                e.dataTransfer.effectAllowed = 'move';
+                bubble.style.opacity = '0.5';
+            });
+
+            bubble.addEventListener('dragend', (e) => {
+                if (!isEditMode) return;
+                bubble.style.opacity = '1';
+                draggedPlayerIndex = -1;
+                // Remove highlight from all
+                Array.from(playerPool.children).forEach(c => c.style.border = '');
+            });
+
+            bubble.addEventListener('dragover', (e) => {
+                if (!isEditMode) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                bubble.style.border = '2px dashed #ffc107';
+            });
+
+            bubble.addEventListener('dragleave', (e) => {
+                if (!isEditMode) return;
+                bubble.style.border = '';
+            });
+
+            bubble.addEventListener('drop', (e) => {
+                if (!isEditMode) return;
+                e.preventDefault();
+                bubble.style.border = '';
+
+                const targetIndex = players.indexOf(player);
+                if (draggedPlayerIndex > -1 && draggedPlayerIndex !== targetIndex) {
+                    // Reorder array
+                    const item = players.splice(draggedPlayerIndex, 1)[0];
+                    players.splice(targetIndex, 0, item);
+                    reRenderPool();
+                }
+            });
+
             playerPool.appendChild(bubble);
         }
+
+
+
 
         function updatePlayerCount() {
             const selectedCount = players.filter(p => p.selected).length;
@@ -916,5 +1581,11 @@
             goBtn.disabled = false;
         }
     </script>
+
+    <div id="minimizedWidget">
+        <div id="miniProgressInner"></div>
+        <span id="miniCheck">&#10004;</span>
+    </div>
+
 </body>
 </html>
