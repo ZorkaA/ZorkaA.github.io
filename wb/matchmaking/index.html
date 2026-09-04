@@ -639,6 +639,11 @@
             </div>
         </div>
     </div>
+    <div id="minimizedWidget">
+        <div id="miniProgressInner"></div>
+        <span id="miniCheck">&#10004;</span>
+    </div>
+
 
     <script>
         function debounce(func, delay) {
@@ -658,6 +663,9 @@
 
         const players = []; // {uid, nick, squad, killsELO, gamesELO, wins, selected: false}
         const playerPool = document.getElementById('playerPool');
+        let isEditMode = false;
+        let playersSnapshot = [];
+
         const searchResults = document.getElementById('searchResults');
         const playerInput = document.getElementById('playerInput');
         const addPlayerBtn = document.getElementById('addPlayer');
@@ -1078,8 +1086,6 @@
 
         const editBtn = document.getElementById('editBtn');
         const undoBtn = document.getElementById('undoBtn');
-        let isEditMode = false;
-        let playersSnapshot = [];
 
         editBtn.addEventListener('click', () => {
             isEditMode = !isEditMode;
@@ -1581,11 +1587,6 @@
             goBtn.disabled = false;
         }
     </script>
-
-    <div id="minimizedWidget">
-        <div id="miniProgressInner"></div>
-        <span id="miniCheck">&#10004;</span>
-    </div>
 
 </body>
 </html>
