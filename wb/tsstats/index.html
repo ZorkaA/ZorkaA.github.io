@@ -6,6 +6,7 @@
     <title>Historical Stats Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -89,6 +90,11 @@
         let selectedUid = '';
         let timePeriod = '7d'; // Default to 7 days
         let yScaleType = 'linear'; // Default to linear scale
+        // Supabase setup
+        const supabaseUrl = 'https://vviprqpyqkwjdtqqlmde.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aXBycXB5cWt3amR0cXFsbWRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAxMDUxNzMsImV4cCI6MjA0NTY4MTE3M30.ftmjdgdJPjOox5SpxDNoQ3kJX0vfbhRoEHharLcI4eM';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
 
         // Supabase setup
         
@@ -236,8 +242,10 @@
             }
             console.log('Date range:', { startDate, timePeriod, now: now.toISOString() });
 
-            // Fetch data from Turso
+            // Fetch data with Turso, fallback to Supabase
+            let data = null;
             try {
+                console.log("Attempting to fetch from Turso...");
                 const TURSO_URL = 'https://wb-zorkaa.aws-us-east-1.turso.io';
                 const TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicm8iLCJpYXQiOjE3ODg3Njk0NTMsImlkIjoiMDFhMDdhOWUtMjcwMS03ZTc1LWIxNjgtMmY3NTBhODdkY2Y2Iiwia2lkIjoiWXdIOURLS0hPSHpydmRBYWZwZFUtbXpVbXVXUFRoQ0E2eElkWS1VQmVfWSIsInJpZCI6IjQxM2ZjYTJhLTMwYTktNGUyZS04NmM3LWQ5MGFiYjVlZWExOCJ9.1LDhLKRRomV24VAbrtHP-8ZN3rPl9n8GiGrAqy9efLfAl0-PxXAeNenA55N0KsXLXRXZ4zsj5nxfB1K8uWjRDA';
 
@@ -265,7 +273,7 @@
                 const result = await response.json();
                 const execResult = result.results[0].response.result;
                 
-                const data = (execResult && execResult.cols && execResult.cols.length > 0 && execResult.rows && execResult.rows.length > 0)
+                data = (execResult && execResult.cols && execResult.cols.length > 0 && execResult.rows && execResult.rows.length > 0)
                     ? execResult.rows.map((row, rowIndex) => {
                         const obj = {};
                         execResult.cols.forEach((col, colIndex) => {
@@ -278,14 +286,35 @@
                     })
                     : [];
 
-                if (data.length === 0) {
+            } catch (tursoError) {
+                console.warn('Turso failed, falling back to Supabase:', tursoError);
+                try {
+                    const query = supabaseClient
+                        .from('wbtsdb')
+                        .select(`date, ${metrics.map(m => m.column).join(', ')}`)
+                        .eq('uid', selectedUid)
+                        .gte('date', startDate)
+                        .order('date', { ascending: true });
+                    
+                    const { data: supaData, error: supaError } = await query;
+                    if (supaError) throw supaError;
+                    data = supaData;
+                } catch (supaError) {
+                    console.error('Supabase fallback error:', supaError);
+                    alert('Error fetching data from both primary (Turso) and backup (Supabase) databases.');
                     document.getElementById('error-message').style.display = 'block';
-                    alert('No data found for this UID in the selected time period.');
                     return;
                 }
+            }
 
-                document.getElementById('error-message').style.display = 'none';
-                updateChart(data, metrics);
+            if (!data || data.length === 0) {
+                document.getElementById('error-message').style.display = 'block';
+                alert('No data found for this UID in the selected time period.');
+                return;
+            }
+
+            document.getElementById('error-message').style.display = 'none';
+            updateChart(data, metrics);
             } catch (error) {
                 console.error('fetchComparisonData error:', error);
                 alert('Failed to load data: ' + error.message);
