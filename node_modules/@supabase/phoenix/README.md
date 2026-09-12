@@ -26,7 +26,7 @@ npm install @supabase/phoenix
 This package uses **independent semantic versioning** for the JavaScript client.
 
 - **Based on**: Phoenix Framework 1.8.3 JS client
-- **Last synced**: 2026-02-17
+- **Last synced**: 2026-07-09
 
 We version based on **JS API changes only**, not upstream Phoenix framework releases.
 When we merge upstream Phoenix changes, we evaluate the JS API impact and version accordingly.
@@ -35,13 +35,13 @@ When we merge upstream Phoenix changes, we evaluate the JS API impact and versio
 
 See the official site at <https://www.phoenixframework.org/>.
 
-Install the latest version of Phoenix by following the instructions at <https://hexdocs.pm/phoenix/installation.html#phoenix>.
+Install the latest version of Phoenix by following the instructions at <https://phoenix.hexdocs.pm/installation.html#phoenix>.
 
 ## Documentation
 
-API documentation is available at <https://hexdocs.pm/phoenix>.
+API documentation is available at <https://phoenix.hexdocs.pm>.
 
-Phoenix.js documentation is available at <https://hexdocs.pm/phoenix/js>.
+Phoenix.js documentation is available at <https://phoenix.hexdocs.pm/js>.
 
 ## Contributing
 
@@ -74,7 +74,6 @@ To create projects outside of the `installer/` directory, add the latest archive
 To build the documentation:
 
 ```bash
-npm install
 MIX_ENV=docs mix docs
 ```
 
@@ -96,8 +95,7 @@ mix archive.build
 To build Phoenix.js:
 
 ```bash
-cd assets
-npm install
+mix assets.build
 ```
 
 ## Important links

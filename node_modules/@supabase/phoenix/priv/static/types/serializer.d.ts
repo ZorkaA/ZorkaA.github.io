@@ -22,6 +22,7 @@ declare namespace _default {
     function decode<T>(rawPayload: ArrayBuffer | string, callback: (msg: Message<unknown>) => T): T;
     /** @private */
     function binaryEncode(message: any): any;
+    function assertFieldSize(size: any, name: any): void;
     /**
     * @private
     */

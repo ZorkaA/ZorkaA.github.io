@@ -237,9 +237,9 @@ export type SocketOptions = {
     params?: Closure<Params> | undefined;
     /**
      * - the optional authentication token to be exposed on the server
-     * under the `:auth_token` connect_info key.
+     * under the `:auth_token` connect_info key. Can be a string or a function that returns a string.
      */
-    authToken?: string | undefined;
+    authToken?: Closure<string> | undefined;
     /**
      * - The binary type to use for binary WebSocket frames.
      *

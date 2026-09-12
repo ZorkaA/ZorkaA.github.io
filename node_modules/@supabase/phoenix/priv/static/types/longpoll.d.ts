@@ -22,7 +22,7 @@ export default class LongPoll {
     isActive(): boolean;
     poll(): void;
     send(body: any): void;
-    batchSend(messages: any): void;
+    batchSend(messages: any, offset?: number): void;
     close(code: any, reason: any, wasClean: any): void;
     ajax(method: any, headers: any, body: any, onCallerTimeout: any, callback: any): void;
 }

@@ -87,8 +87,8 @@ export default class Socket {
     pendingHeartbeatRef: string | null;
     /** @type{Timer} */
     reconnectTimer: Timer;
-    /** @type{string | undefined} */
-    authToken: string | undefined;
+    /** @type{(() => string) | undefined} */
+    authToken: (() => string) | undefined;
     /**
      * Returns the LongPoll transport reference
      */

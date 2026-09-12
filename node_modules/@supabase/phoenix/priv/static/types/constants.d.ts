@@ -4,6 +4,7 @@ export const global: typeof globalThis;
 export const DEFAULT_VSN: "2.0.0";
 export const DEFAULT_TIMEOUT: 10000;
 export const WS_CLOSE_NORMAL: 1000;
+export const MAX_LONGPOLL_BATCH_SIZE: 100;
 export namespace SOCKET_STATES {
     let connecting: 0;
     let open: 1;

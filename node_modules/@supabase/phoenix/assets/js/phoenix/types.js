@@ -155,8 +155,8 @@
  *
  * @property {Closure<Params>} [params] - The optional params to pass when connecting
  *
- * @property {string} [authToken] - the optional authentication token to be exposed on the server
- * under the `:auth_token` connect_info key.
+ * @property {Closure<string>} [authToken] - the optional authentication token to be exposed on the server
+ * under the `:auth_token` connect_info key. Can be a string or a function that returns a string.
  *
  * @property {BinaryType} [binaryType] - The binary type to use for binary WebSocket frames.
  *

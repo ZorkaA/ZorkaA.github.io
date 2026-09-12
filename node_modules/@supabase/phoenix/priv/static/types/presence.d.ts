@@ -48,6 +48,7 @@ export default class Presence {
     * @param {(key: string, obj: PresenceState) => T} func
     */
     static map<T>(obj: Record<string, PresenceState>, func: (key: string, obj: PresenceState) => T): T[];
+    static toNullProtoObj(obj: any): any;
     /**
     * @template T
     * @param {T} obj
