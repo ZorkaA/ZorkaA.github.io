@@ -249,7 +249,7 @@
                 const TURSO_URL = 'https://wb-zorkaa.aws-us-east-1.turso.io';
                 const TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicm8iLCJpYXQiOjE3ODg3Njk0NTMsImlkIjoiMDFhMDdhOWUtMjcwMS03ZTc1LWIxNjgtMmY3NTBhODdkY2Y2Iiwia2lkIjoiWXdIOURLS0hPSHpydmRBYWZwZFUtbXpVbXVXUFRoQ0E2eElkWS1VQmVfWSIsInJpZCI6IjQxM2ZjYTJhLTMwYTktNGUyZS04NmM3LWQ5MGFiYjVlZWExOCJ9.1LDhLKRRomV24VAbrtHP-8ZN3rPl9n8GiGrAqy9efLfAl0-PxXAeNenA55N0KsXLXRXZ4zsj5nxfB1K8uWjRDA';
 
-                const sql = "SELECT date, " + metrics.map(m => m.column).join(', ') + " FROM wbtsdb WHERE uid = ? AND date >= ? ORDER BY date ASC";
+                const sql = "SELECT date, " + metrics.map(m => m.column).join(', ') + " FROM tsd WHERE uid = ? AND date >= ? ORDER BY date ASC";
                 const args = [selectedUid, startDate];
 
                 const response = await fetch(`${TURSO_URL}/v2/pipeline`, {
@@ -290,7 +290,7 @@
                 console.warn('Turso failed, falling back to Supabase:', tursoError);
                 try {
                     const query = supabaseClient
-                        .from('wbtsdb')
+                        .from('tsd')
                         .select(`date, ${metrics.map(m => m.column).join(', ')}`)
                         .eq('uid', selectedUid)
                         .gte('date', startDate)
